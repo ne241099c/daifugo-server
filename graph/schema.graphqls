@@ -1,0 +1,26 @@
+scalar DateTime
+
+type User {
+  id: ID!
+  name: String!
+  email: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+# 検索系のメソッド
+type Query {
+  hello: String!
+}
+
+input signUpInput {
+  name: String!
+  email: String!
+  password: String!
+}
+
+# 更新系のメソッド
+type Mutation {
+  signUp(in: signUpInput!): User!
+}
+
