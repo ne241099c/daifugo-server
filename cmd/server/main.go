@@ -25,7 +25,7 @@ func main() {
 	// SSE Hub 作成
 	hub := sse.NewHub()
 	// SSE
-	e.GET("/events", sse.NewHandler(hub))
+	e.GET("/events", sse.NewHandler(hub)) // AIに聞く
 
 	// GraphQL server
 	gqlServer := handler.NewDefaultServer(

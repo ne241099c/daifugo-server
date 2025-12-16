@@ -13,13 +13,13 @@ var _ repository.UserRepository = &InmemUserRepository{}
 
 type InmemUserRepository struct {
 	mtx    sync.RWMutex
-	data   map[int64]*model.User
+	data   map[int64]model.User
 	number int64
 }
 
 func NewInmemUserRepository() *InmemUserRepository {
 	return &InmemUserRepository{
-		data: make(map[int64]*model.User),
+		data: make(map[int64]model.User),
 	}
 }
 
@@ -31,7 +31,7 @@ func (r *InmemUserRepository) GetUser(ctx context.Context, id int64) (*model.Use
 	if !ok {
 		return nil, errors.Join(repository.ErrEntityNotFound)
 	}
-	return user, nil
+	return &user, nil
 }
 
 func (r *InmemUserRepository) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
@@ -40,7 +40,7 @@ func (r *InmemUserRepository) GetUserByEmail(ctx context.Context, email string) 
 
 	for _, user := range r.data {
 		if user.Email == email {
-			return user, nil
+			return &user, nil
 		}
 	}
 	return nil, errors.Join(repository.ErrEntityNotFound)
@@ -54,6 +54,6 @@ func (r *InmemUserRepository) SaveUser(ctx context.Context, user *model.User) er
 		r.number++
 		user.ID = r.number
 	}
-	r.data[user.ID] = user
+	r.data[user.ID] = *user
 	return nil
 }

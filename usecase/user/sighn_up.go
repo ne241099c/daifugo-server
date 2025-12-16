@@ -21,6 +21,7 @@ type SignUpInteractor struct {
 }
 
 func (uc *SignUpInteractor) Execute(ctx context.Context, input gqlmodel.SignUpInput) (*model.User, error) {
+	// 重複チェック
 	u, err := uc.UserRepository.GetUserByEmail(ctx, input.Email)
 	if u != nil {
 		return nil, errors.Join(usecase.ErrDuplicateEntity)
@@ -30,6 +31,7 @@ func (uc *SignUpInteractor) Execute(ctx context.Context, input gqlmodel.SignUpIn
 		return nil, errors.Join(err)
 	}
 
+	// ユーザ作成
 	user := &model.User{}
 	if err := user.Create(model.CreateUserParam{
 		Email:    input.Email,
@@ -39,6 +41,7 @@ func (uc *SignUpInteractor) Execute(ctx context.Context, input gqlmodel.SignUpIn
 		return nil, errors.Join(err)
 	}
 
+	// ユーザ保存
 	if err := uc.UserRepository.SaveUser(ctx, user); err != nil {
 		return nil, err
 	}
