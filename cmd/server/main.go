@@ -57,8 +57,3 @@ func main() {
 	// サーバ起動
 	e.Logger.Fatal(e.Start(":8080"))
 }
-
-// あああああ
-// ううううう
-// おおおお
-// eeeeee
