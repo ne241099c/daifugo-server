@@ -8,9 +8,19 @@ type User {
   updatedAt: DateTime!
 }
 
+type Room {
+  id: ID! # 部屋ID
+  name: String! # 部屋名
+  ownerId: ID! # 部屋のオーナーID
+  memberIds: [ID!]! # 部屋のメンバーIDリスト
+  createdAt: DateTime! # 作成日時
+  updatedAt: DateTime! # 更新日時
+}
+
 # 検索系のメソッド
 type Query {
   hello: String!
+  rooms: [Room!]!
 }
 
 input signUpInput {
@@ -22,5 +32,7 @@ input signUpInput {
 # 更新系のメソッド
 type Mutation {
   signUp(in: signUpInput!): User!
+  createRoom(name: String!): Room!
+  joinRoom(roomId: ID!): Room!
 }
 
