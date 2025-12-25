@@ -2,6 +2,7 @@ package graph
 
 import (
 	"github.com/ne241099/daifugo-server/internal/sse"
+	"github.com/ne241099/daifugo-server/usecase/room"
 	"github.com/ne241099/daifugo-server/usecase/user"
 )
 
@@ -11,6 +12,8 @@ import (
 // here.
 
 type Resolver struct {
-	Hub           *sse.Hub
-	SignUpUseCase user.SignUpUseCase
+	Hub               *sse.Hub
+	SignUpUseCase     user.SignUpUseCase
+	CreateRoomUseCase room.CreateRoomUsecase
+	JoinRoomUseCase   room.JoinRoomUsecase
 }

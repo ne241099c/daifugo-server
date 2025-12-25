@@ -32,13 +32,52 @@ func (r *mutationResolver) SignUp(ctx context.Context, in model.SignUpInput) (*m
 // CreateRoom is the resolver for the createRoom field.
 // 部屋を作成する
 func (r *mutationResolver) CreateRoom(ctx context.Context, name string) (*model.Room, error) {
-	return nil, fmt.Errorf("not implemented yet")
+	var ownerID int64 = 1
+
+	// UseCaseを実行
+	createdRoom, err := r.CreateRoomUseCase.Execute(ctx, name, ownerID)
+	if err != nil {
+		return nil, err
+	}
+
+	// ドメインモデル から GraphQLモデル への変換
+	return &model.Room{
+		ID:        strconv.FormatInt(createdRoom.ID, 10),
+		Name:      createdRoom.Name,
+		OwnerID:   strconv.FormatInt(createdRoom.OwnerID, 10),
+		MemberIds: []string{strconv.FormatInt(createdRoom.OwnerID, 10)},
+		CreatedAt: createdRoom.CreatedAt,
+		UpdatedAt: createdRoom.UpdatedAt,
+	}, nil
 }
 
 // JoinRoom is the resolver for the joinRoom field.
 // 部屋に参加する
 func (r *mutationResolver) JoinRoom(ctx context.Context, roomID string) (*model.Room, error) {
-	return nil, fmt.Errorf("not implemented yet")
+	rID, err := strconv.ParseInt(roomID, 10, 64)
+	if err != nil {
+		return nil, errors.Join(err)
+	}
+
+	var userID int64 = 2
+	joinedRoom, err := r.JoinRoomUseCase.Execute(ctx, rID, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	memberIdsStr := make([]string, len(joinedRoom.MemberIDs))
+	for i, mid := range joinedRoom.MemberIDs {
+		memberIdsStr[i] = strconv.FormatInt(mid, 10)
+	}
+
+	return &model.Room{
+		ID:        strconv.FormatInt(joinedRoom.ID, 10),
+		Name:      joinedRoom.Name,
+		OwnerID:   strconv.FormatInt(joinedRoom.OwnerID, 10),
+		MemberIds: memberIdsStr,
+		CreatedAt: joinedRoom.CreatedAt,
+		UpdatedAt: joinedRoom.UpdatedAt,
+	}, nil
 }
 
 // Hello is the resolver for the hello field.

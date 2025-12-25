@@ -4,6 +4,7 @@ import (
 	"github.com/ne241099/daifugo-server/graph"
 	"github.com/ne241099/daifugo-server/infra/inmem"
 	"github.com/ne241099/daifugo-server/internal/sse"
+	"github.com/ne241099/daifugo-server/usecase/room"
 	"github.com/ne241099/daifugo-server/usecase/user"
 
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -21,6 +22,7 @@ func main() {
 
 	// リポジトリ初期化
 	userRepo := inmem.NewInmemUserRepository()
+	roomRepo := inmem.NewInmemRoomRepository()
 
 	// SSE Hub 作成
 	hub := sse.NewHub()
@@ -35,6 +37,12 @@ func main() {
 					Hub: hub,
 					SignUpUseCase: &user.SignUpInteractor{
 						UserRepository: userRepo,
+					},
+					CreateRoomUseCase: &room.CreateRoomInteractor{
+						RoomRepository: roomRepo,
+					},
+					JoinRoomUseCase: &room.JoinRoomInteractor{
+						RoomRepository: roomRepo,
 					},
 				},
 			},
