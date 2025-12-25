@@ -1,18 +1,27 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/ne241099/daifugo-server/internal/game"
+)
 
 type Room struct {
 	ID        int64
 	Name      string
 	OwnerID   int64
 	MemberIDs []int64
+	Game      *game.Game
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
 
 func (r *Room) IsFull() bool {
 	return len(r.MemberIDs) >= 4
+}
+
+func (r *Room) StartGame() {
+	r.Game = game.NewGame(r.MemberIDs)
 }
 
 func NewRoom(name string, ownerID int64) *Room {
