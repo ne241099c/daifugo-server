@@ -13,6 +13,8 @@ type Room {
   name: String! # 部屋名
   ownerId: ID! # 部屋のオーナーID
   memberIds: [ID!]! # 部屋のメンバーIDリスト
+  owner: User! # 部屋のオーナー情報
+  members: [User!]! # 部屋のメンバーリスト
   createdAt: DateTime! # 作成日時
   updatedAt: DateTime! # 更新日時
 }

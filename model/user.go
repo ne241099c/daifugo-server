@@ -17,9 +17,11 @@ type User struct {
 }
 
 type CreateUserParam struct {
-	Email    string
-	Password string
-	Name     string
+	Email     string
+	Password  string
+	Name      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func (u *User) Create(params CreateUserParam) error {
@@ -30,6 +32,8 @@ func (u *User) Create(params CreateUserParam) error {
 	u.Email = params.Email
 	u.HashedPassword = hp
 	u.Name = params.Name
+	u.CreatedAt = params.CreatedAt
+	u.UpdatedAt = params.UpdatedAt
 
 	return nil
 }

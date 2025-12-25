@@ -122,11 +122,59 @@ func (r *queryResolver) Rooms(ctx context.Context) ([]*model.Room, error) {
 	return gqlRooms, nil
 }
 
+// Owner is the resolver for the owner field.
+func (r *roomResolver) Owner(ctx context.Context, obj *model.Room) (*model.User, error) {
+	ownerID, err := strconv.ParseInt(obj.OwnerID, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := r.GetUserUseCase.Execute(ctx, ownerID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.User{
+		ID:        strconv.FormatInt(u.ID, 10),
+		Name:      u.Name,
+		Email:     u.Email,
+		CreatedAt: u.CreatedAt,
+		UpdatedAt: u.UpdatedAt,
+	}, nil
+}
+
+// Members is the resolver for the members field.
+func (r *roomResolver) Members(ctx context.Context, obj *model.Room) ([]*model.User, error) {
+	var gqlUsers []*model.User
+
+	// obj.MemberIdsを回してユーザー情報を取得
+	for _, idStr := range obj.MemberIds {
+		mid, _ := strconv.ParseInt(idStr, 10, 64)
+
+		u, err := r.GetUserUseCase.Execute(ctx, mid)
+		if err == nil {
+			gqlUsers = append(gqlUsers, &model.User{
+				ID:        strconv.FormatInt(u.ID, 10),
+				Name:      u.Name,
+				Email:     u.Email,
+				CreatedAt: u.CreatedAt,
+				UpdatedAt: u.UpdatedAt,
+			})
+		}
+	}
+
+	return gqlUsers, nil
+}
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+// Room returns RoomResolver implementation.
+func (r *Resolver) Room() RoomResolver { return &roomResolver{r} }
+
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type roomResolver struct{ *Resolver }

@@ -38,6 +38,9 @@ func main() {
 					SignUpUseCase: &user.SignUpInteractor{
 						UserRepository: userRepo,
 					},
+					GetUserUseCase: &user.GetUserInteractor{
+						UserRepository: userRepo,
+					},
 					CreateRoomUseCase: &room.CreateRoomInteractor{
 						RoomRepository: roomRepo,
 					},

@@ -57,3 +57,14 @@ func (r *InmemUserRepository) SaveUser(ctx context.Context, user *model.User) er
 	r.data[user.ID] = *user
 	return nil
 }
+
+func (r *InmemUserRepository) FindByID(ctx context.Context, id int64) (*model.User, error) {
+	r.mtx.RLock()
+	defer r.mtx.RUnlock()
+
+	user, ok := r.data[id]
+	if !ok {
+		return nil, errors.Join(repository.ErrEntityNotFound)
+	}
+	return &user, nil
+}

@@ -17,6 +17,8 @@ type Room struct {
 	Name      string    `json:"name"`
 	OwnerID   string    `json:"ownerId"`
 	MemberIds []string  `json:"memberIds"`
+	Owner     *User     `json:"owner"`
+	Members   []*User   `json:"members"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }

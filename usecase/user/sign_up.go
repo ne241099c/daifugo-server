@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"errors"
+	"time"
 
 	gqlmodel "github.com/ne241099/daifugo-server/graph/model"
 	"github.com/ne241099/daifugo-server/model"
@@ -30,13 +31,16 @@ func (uc *SignUpInteractor) Execute(ctx context.Context, input gqlmodel.SignUpIn
 	if !errors.Is(err, repository.ErrEntityNotFound) {
 		return nil, errors.Join(err)
 	}
+	now := time.Now()
 
 	// ユーザ作成
 	user := &model.User{}
 	if err := user.Create(model.CreateUserParam{
-		Email:    input.Email,
-		Password: input.Password,
-		Name:     input.Name,
+		Email:     input.Email,
+		Password:  input.Password,
+		Name:      input.Name,
+		CreatedAt: now,
+		UpdatedAt: now,
 	}); err != nil {
 		return nil, errors.Join(err)
 	}

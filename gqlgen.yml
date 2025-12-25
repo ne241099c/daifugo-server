@@ -161,4 +161,11 @@ models:
   DateTime:
     model:
       - github.com/99designs/gqlgen/graphql.Time
+
+  Room:
+    fields:
+      owner:
+        resolver: true
+      members:
+        resolver: true
       
