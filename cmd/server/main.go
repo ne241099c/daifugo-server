@@ -44,6 +44,9 @@ func main() {
 					JoinRoomUseCase: &room.JoinRoomInteractor{
 						RoomRepository: roomRepo,
 					},
+					ListRoomsUseCase: &room.ListRoomsInteractor{
+						RoomRepository: roomRepo,
+					},
 				},
 			},
 		),

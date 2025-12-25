@@ -16,4 +16,5 @@ type Resolver struct {
 	SignUpUseCase     user.SignUpUseCase
 	CreateRoomUseCase room.CreateRoomUseCase
 	JoinRoomUseCase   room.JoinRoomUseCase
+	ListRoomsUseCase  room.ListRoomsUseCase
 }

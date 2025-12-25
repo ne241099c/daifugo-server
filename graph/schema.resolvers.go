@@ -41,14 +41,17 @@ func (r *mutationResolver) CreateRoom(ctx context.Context, name string) (*model.
 	}
 
 	// ドメインモデル から GraphQLモデル への変換
-	return &model.Room{
+	gqlRoom := &model.Room{
 		ID:        strconv.FormatInt(createdRoom.ID, 10),
 		Name:      createdRoom.Name,
 		OwnerID:   strconv.FormatInt(createdRoom.OwnerID, 10),
 		MemberIds: []string{strconv.FormatInt(createdRoom.OwnerID, 10)},
 		CreatedAt: createdRoom.CreatedAt,
 		UpdatedAt: createdRoom.UpdatedAt,
-	}, nil
+	}
+
+	r.Hub.Publish("room_created", gqlRoom, nil)
+	return gqlRoom, nil
 }
 
 // JoinRoom is the resolver for the joinRoom field.
@@ -70,14 +73,17 @@ func (r *mutationResolver) JoinRoom(ctx context.Context, roomID string) (*model.
 		memberIdsStr[i] = strconv.FormatInt(mid, 10)
 	}
 
-	return &model.Room{
+	gqlRoom := &model.Room{
 		ID:        strconv.FormatInt(joinedRoom.ID, 10),
 		Name:      joinedRoom.Name,
 		OwnerID:   strconv.FormatInt(joinedRoom.OwnerID, 10),
 		MemberIds: memberIdsStr,
 		CreatedAt: joinedRoom.CreatedAt,
 		UpdatedAt: joinedRoom.UpdatedAt,
-	}, nil
+	}
+
+	r.Hub.Publish("room_updated", gqlRoom, nil)
+	return gqlRoom, nil
 }
 
 // Hello is the resolver for the hello field.
@@ -89,7 +95,31 @@ func (r *queryResolver) Hello(ctx context.Context) (string, error) {
 // Rooms is the resolver for the rooms field.
 // 部屋を取得する
 func (r *queryResolver) Rooms(ctx context.Context) ([]*model.Room, error) {
-	return nil, fmt.Errorf("not implemented yet")
+	rooms, err := r.ListRoomsUseCase.Execute(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list rooms: %w", err)
+	}
+
+	// GraphQLモデルに変換
+	gqlRooms := make([]*model.Room, len(rooms))
+	for i, room := range rooms {
+		// メンバーIDの変換
+		memberIdsStr := make([]string, len(room.MemberIDs))
+		for j, mid := range room.MemberIDs {
+			memberIdsStr[j] = strconv.FormatInt(mid, 10)
+		}
+
+		gqlRooms[i] = &model.Room{
+			ID:        strconv.FormatInt(room.ID, 10),
+			Name:      room.Name,
+			OwnerID:   strconv.FormatInt(room.OwnerID, 10),
+			MemberIds: memberIdsStr,
+			CreatedAt: room.CreatedAt,
+			UpdatedAt: room.UpdatedAt,
+		}
+	}
+
+	return gqlRooms, nil
 }
 
 // Mutation returns MutationResolver implementation.
