@@ -8,11 +8,11 @@ import (
 	"github.com/ne241099/daifugo-server/repository"
 )
 
-type JoinRoomUsecase interface {
+type JoinRoomUseCase interface {
 	Execute(ctx context.Context, roomID int64, userID int64) (*model.Room, error)
 }
 
-var _ JoinRoomUsecase = &JoinRoomInteractor{}
+var _ JoinRoomUseCase = &JoinRoomInteractor{}
 
 type JoinRoomInteractor struct {
 	RoomRepository repository.RoomRepository

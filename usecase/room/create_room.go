@@ -7,11 +7,11 @@ import (
 	"github.com/ne241099/daifugo-server/repository"
 )
 
-type CreateRoomUsecase interface {
+type CreateRoomUseCase interface {
 	Execute(ctx context.Context, name string, ownerID int64) (*model.Room, error)
 }
 
-var _ CreateRoomUsecase = &CreateRoomInteractor{}
+var _ CreateRoomUseCase = &CreateRoomInteractor{}
 
 type CreateRoomInteractor struct {
 	RoomRepository repository.RoomRepository
