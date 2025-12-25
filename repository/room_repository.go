@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/ne241099/daifugo-server/graph/model"
+	"github.com/ne241099/daifugo-server/model"
 )
 
 type RoomRepository interface {
