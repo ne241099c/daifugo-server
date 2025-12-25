@@ -32,12 +32,14 @@ func (s Suit) String() string {
 type Rank int
 
 type Card struct {
+	ID   int
 	Suit Suit
 	Rank Rank
 }
 
-func NewCard(suit Suit, rank Rank) *Card {
+func NewCard(id int, suit Suit, rank Rank) *Card {
 	return &Card{
+		ID:   id,
 		Suit: suit,
 		Rank: rank,
 	}
