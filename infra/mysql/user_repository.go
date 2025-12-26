@@ -81,3 +81,13 @@ func (r *MySQLUserRepository) GetUserByEmail(ctx context.Context, email string) 
 	}
 	return &u, nil
 }
+
+// DeleteUser はIDでユーザーを削除する
+func (r *MySQLUserRepository) DeleteUser(ctx context.Context, id int64) error {
+	query := "DELETE FROM users WHERE id = ?"
+	_, err := r.db.ExecContext(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete user: %w", err)
+	}
+	return nil
+}

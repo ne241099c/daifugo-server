@@ -16,6 +16,7 @@ type Resolver struct {
 	Hub               *sse.Hub
 	SignUpUseCase     user.SignUpUseCase
 	GetUserUseCase    user.GetUserUseCase
+	DeleteUserUseCase user.DeleteUserUseCase
 	CreateRoomUseCase room.CreateRoomUseCase
 	JoinRoomUseCase   room.JoinRoomUseCase
 	LeaveRoomUseCase  room.LeaveRoomUseCase

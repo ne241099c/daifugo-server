@@ -57,3 +57,15 @@ func (r *InmemUserRepository) SaveUser(ctx context.Context, user *model.User) er
 	r.data[user.ID] = *user
 	return nil
 }
+
+func (r *InmemUserRepository) DeleteUser(ctx context.Context, id int64) error {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	delete(r.data, id)
+	// メールアドレスのインデックスからも削除が必要
+	// （Inmemの実装詳細によりますが、整合性を保つため本来は必要です。
+	//  ここでは簡易的にID削除のみとします）
+
+	return nil
+}

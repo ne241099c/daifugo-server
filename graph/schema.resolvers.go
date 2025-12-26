@@ -162,7 +162,25 @@ func (r *mutationResolver) LeaveRoom(ctx context.Context, roomID string) (bool, 
 		return false, err
 	}
 
-	r.Hub.Publish("room_updated", map[string]any{"roomID": roomID, "userID": strconv.FormatInt(userID, 10)}, nil)
+	r.Hub.Publish("room_updated", map[string]any{
+		"roomId": roomID,
+		"event":  "member_left",
+	}, nil)
+	return true, nil
+}
+
+// DeleteUser is the resolver for the deleteUser field.
+func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (bool, error) {
+	userID, err := auth.GetUserID(ctx)
+	if err != nil {
+		return false, fmt.Errorf("unauthorized: %w", err)
+	}
+
+	// UseCase実行
+	if err := r.DeleteUserUseCase.Execute(ctx, userID); err != nil {
+		return false, err
+	}
+
 	return true, nil
 }
 

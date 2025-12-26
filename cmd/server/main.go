@@ -43,10 +43,16 @@ func main() {
 		GetUserUseCase: &user.GetUserInteractor{
 			UserRepository: userRepo,
 		},
+		DeleteUserUseCase: &user.DeleteUserInteractor{
+			UserRepository: userRepo,
+		},
 		CreateRoomUseCase: &room.CreateRoomInteractor{
 			RoomRepository: roomRepo,
 		},
 		JoinRoomUseCase: &room.JoinRoomInteractor{
+			RoomRepository: roomRepo,
+		},
+		LeaveRoomUseCase: &room.LeaveRoomInteractor{
 			RoomRepository: roomRepo,
 		},
 		ListRoomsUseCase: &room.ListRoomsInteractor{

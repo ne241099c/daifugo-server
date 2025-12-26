@@ -13,4 +13,6 @@ type UserRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (*model.User, error)
 	// SaveUser は、ユーザを保存する
 	SaveUser(ctx context.Context, user *model.User) error
+	// DeleteUser は、ユーザを削除する
+	DeleteUser(ctx context.Context, id int64) error
 }
