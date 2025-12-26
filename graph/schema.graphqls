@@ -63,5 +63,6 @@ type Mutation {
   startGame(roomId: ID!): Room!
   playCard(roomId: ID!, cardIds: [Int!]!): Room!
   pass(roomId: ID!): Room!
+  leaveRoom(roomID: ID!): Boolean!
 }
 

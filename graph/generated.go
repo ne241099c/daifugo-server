@@ -72,6 +72,7 @@ type ComplexityRoot struct {
 	Mutation struct {
 		CreateRoom func(childComplexity int, name string) int
 		JoinRoom   func(childComplexity int, roomID string) int
+		LeaveRoom  func(childComplexity int, roomID string) int
 		Pass       func(childComplexity int, roomID string) int
 		PlayCard   func(childComplexity int, roomID string, cardIds []int32) int
 		SignUp     func(childComplexity int, in model.SignUpInput) int
@@ -114,6 +115,7 @@ type MutationResolver interface {
 	StartGame(ctx context.Context, roomID string) (*model.Room, error)
 	PlayCard(ctx context.Context, roomID string, cardIds []int32) (*model.Room, error)
 	Pass(ctx context.Context, roomID string) (*model.Room, error)
+	LeaveRoom(ctx context.Context, roomID string) (bool, error)
 }
 type QueryResolver interface {
 	Hello(ctx context.Context) (string, error)
@@ -237,6 +239,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.JoinRoom(childComplexity, args["roomId"].(string)), true
+	case "Mutation.leaveRoom":
+		if e.complexity.Mutation.LeaveRoom == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_leaveRoom_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.LeaveRoom(childComplexity, args["roomID"].(string)), true
 	case "Mutation.pass":
 		if e.complexity.Mutation.Pass == nil {
 			break
@@ -553,6 +566,17 @@ func (ec *executionContext) field_Mutation_joinRoom_args(ctx context.Context, ra
 		return nil, err
 	}
 	args["roomId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_leaveRoom_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "roomID", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["roomID"] = arg0
 	return args, nil
 }
 
@@ -1399,6 +1423,47 @@ func (ec *executionContext) fieldContext_Mutation_pass(ctx context.Context, fiel
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_pass_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_leaveRoom(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_leaveRoom,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().LeaveRoom(ctx, fc.Args["roomID"].(string))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_leaveRoom(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_leaveRoom_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -3895,6 +3960,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "pass":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_pass(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "leaveRoom":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_leaveRoom(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++

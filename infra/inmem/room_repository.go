@@ -17,6 +17,23 @@ type InmemRoomRepository struct {
 	next int64
 }
 
+func (r *InmemRoomRepository) UpdateRoom(ctx context.Context, room *model.Room) error {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	// マップの値を更新
+	r.data[room.ID] = room
+	return nil
+}
+
+func (r *InmemRoomRepository) DeleteRoom(ctx context.Context, id int64) error {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	delete(r.data, id)
+	return nil
+}
+
 func NewInmemRoomRepository() *InmemRoomRepository {
 	return &InmemRoomRepository{
 		data: make(map[int64]*model.Room),

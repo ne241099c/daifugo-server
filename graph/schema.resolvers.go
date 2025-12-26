@@ -147,6 +147,25 @@ func (r *mutationResolver) Pass(ctx context.Context, roomID string) (*model.Room
 	return mapRoomToGraphQL(room), nil
 }
 
+// LeaveRoom is the resolver for the leaveRoom field.
+func (r *mutationResolver) LeaveRoom(ctx context.Context, roomID string) (bool, error) {
+	rid, _ := strconv.ParseInt(roomID, 10, 64)
+
+	// 実行ユーザーを取得
+	userID, err := auth.GetUserID(ctx)
+	if err != nil {
+		return false, fmt.Errorf("unauthorized: %w", err)
+	}
+
+	// UseCaseを実行
+	if err := r.LeaveRoomUseCase.Execute(ctx, rid, userID); err != nil {
+		return false, err
+	}
+
+	r.Hub.Publish("room_updated", map[string]any{"roomID": roomID, "userID": strconv.FormatInt(userID, 10)}, nil)
+	return true, nil
+}
+
 // Hello is the resolver for the hello field.
 func (r *queryResolver) Hello(ctx context.Context) (string, error) {
 	r.Hub.Publish("Hello", map[string]any{"message": "Someone queried hello!"}, nil)
