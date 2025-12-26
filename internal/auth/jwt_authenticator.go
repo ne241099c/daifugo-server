@@ -63,7 +63,7 @@ func (a *JWTAuthenticator) VerifyToken(ctx context.Context, tokenString string) 
 }
 
 // GenerateToken はユーザーIDからJWTを生成する
-func (a *JWTAuthenticator) GenerateToken(userID int64) (string, error) {
+func (a *JWTAuthenticator) CreateToken(ctx context.Context, userID int64) (string, error) {
 	claims := jwt.MapClaims{
 		"sub": strconv.FormatInt(userID, 10),
 		"iat": time.Now().Unix(),

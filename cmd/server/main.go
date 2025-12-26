@@ -46,6 +46,10 @@ func main() {
 		DeleteUserUseCase: &user.DeleteUserInteractor{
 			UserRepository: userRepo,
 		},
+		LoginUseCase: &user.LoginInteractor{
+			UserRepository: userRepo,
+			Authenticator:  authenticator,
+		},
 		CreateRoomUseCase: &room.CreateRoomInteractor{
 			RoomRepository: roomRepo,
 		},

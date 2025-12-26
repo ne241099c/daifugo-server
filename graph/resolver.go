@@ -15,6 +15,7 @@ import (
 type Resolver struct {
 	Hub               *sse.Hub
 	SignUpUseCase     user.SignUpUseCase
+	LoginUseCase      user.LoginUseCase
 	GetUserUseCase    user.GetUserUseCase
 	DeleteUserUseCase user.DeleteUserUseCase
 	CreateRoomUseCase room.CreateRoomUseCase

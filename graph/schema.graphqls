@@ -57,6 +57,11 @@ input signUpInput {
   password: String!
 }
 
+type AuthPayload {
+  token: String!
+  user: User!
+}
+
 # 更新系のメソッド
 type Mutation {
   signUp(in: signUpInput!): User!
@@ -67,5 +72,6 @@ type Mutation {
   pass(roomId: ID!): Room!
   leaveRoom(roomID: ID!): Boolean!
   deleteUser(id: ID!): Boolean!
+  login(email: String!, password: String!): AuthPayload!
 }
 

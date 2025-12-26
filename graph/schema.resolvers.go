@@ -220,6 +220,25 @@ func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (bool, err
 	return true, nil
 }
 
+// Login is the resolver for the login field.
+func (r *mutationResolver) Login(ctx context.Context, email string, password string) (*model.AuthPayload, error) {
+	token, u, err := r.LoginUseCase.Execute(ctx, email, password)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.AuthPayload{
+		Token: token,
+		User: &model.User{
+			ID:        strconv.FormatInt(u.ID, 10),
+			Name:      u.Name,
+			Email:     u.Email,
+			CreatedAt: u.CreatedAt,
+			UpdatedAt: u.UpdatedAt,
+		},
+	}, nil
+}
+
 // Hello is the resolver for the hello field.
 func (r *queryResolver) Hello(ctx context.Context) (string, error) {
 	r.Hub.Publish("Hello", map[string]any{"message": "Someone queried hello!"}, nil)

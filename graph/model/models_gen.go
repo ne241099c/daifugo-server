@@ -8,6 +8,11 @@ import (
 	"github.com/ne241099/daifugo-server/internal/game"
 )
 
+type AuthPayload struct {
+	Token string `json:"token"`
+	User  *User  `json:"user"`
+}
+
 type Mutation struct {
 }
 
