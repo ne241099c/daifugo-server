@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/ne241099/daifugo-server/model"
+	"github.com/ne241099/daifugo-server/repository"
 )
 
 type MySQLUserRepository struct {
@@ -19,12 +20,10 @@ func NewMySQLUserRepository(db *sql.DB) *MySQLUserRepository {
 
 // SaveUser はユーザーを新規作成または更新する
 func (r *MySQLUserRepository) SaveUser(ctx context.Context, u *model.User) error {
-	// IDが0の場合は新規作成、それ以外は更新とみなす簡易実装
 	if u.ID == 0 {
 		return r.create(ctx, u)
 	}
-	// 更新処理は今回省略（必要なら UPDATE 文を書く）
-	return nil
+	return r.update(ctx, u)
 }
 
 func (r *MySQLUserRepository) create(ctx context.Context, u *model.User) error {
@@ -37,12 +36,24 @@ func (r *MySQLUserRepository) create(ctx context.Context, u *model.User) error {
 		return fmt.Errorf("failed to insert user: %w", err)
 	}
 
-	// 発行されたIDを取得してモデルにセット
 	id, err := res.LastInsertId()
 	if err != nil {
 		return fmt.Errorf("failed to get last insert id: %w", err)
 	}
 	u.ID = id
+	return nil
+}
+
+func (r *MySQLUserRepository) update(ctx context.Context, u *model.User) error {
+	query := `
+		UPDATE users 
+		SET name = ?, email = ?, password_hash = ?, updated_at = ?
+		WHERE id = ?
+	`
+	_, err := r.db.ExecContext(ctx, query, u.Name, u.Email, u.HashedPassword, u.UpdatedAt, u.ID)
+	if err != nil {
+		return fmt.Errorf("failed to update user: %w", err)
+	}
 	return nil
 }
 
@@ -57,7 +68,7 @@ func (r *MySQLUserRepository) GetUser(ctx context.Context, id int64) (*model.Use
 	var u model.User
 	if err := row.Scan(&u.ID, &u.Name, &u.Email, &u.HashedPassword, &u.CreatedAt, &u.UpdatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("failed to get user: %w", err) // 共通のエラー型があればそれを使う
+			return nil, repository.ErrEntityNotFound
 		}
 		return nil, fmt.Errorf("failed to scan user: %w", err)
 	}
@@ -75,7 +86,7 @@ func (r *MySQLUserRepository) GetUserByEmail(ctx context.Context, email string) 
 	var u model.User
 	if err := row.Scan(&u.ID, &u.Name, &u.Email, &u.HashedPassword, &u.CreatedAt, &u.UpdatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("failed to get user: %w", err)
+			return nil, repository.ErrEntityNotFound
 		}
 		return nil, fmt.Errorf("failed to scan user: %w", err)
 	}
