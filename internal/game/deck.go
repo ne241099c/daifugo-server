@@ -2,12 +2,14 @@ package game
 
 import (
 	"math/rand"
+	"time"
 )
 
 type Deck []*Card
 
-func NewDeck() Deck {
-	d := make(Deck, 0, 54)
+func NewDeck(jokerCount int) Deck {
+	rand.Seed(time.Now().UnixNano()) // シード初期化を追加（念の為）
+	d := make(Deck, 0, 52+jokerCount)
 	idCounter := 1
 
 	for s := SuitSpade; s <= SuitClub; s++ {
@@ -17,7 +19,7 @@ func NewDeck() Deck {
 		}
 	}
 
-	for range 2 {
+	for i := 0; i < jokerCount; i++ {
 		d = append(d, NewCard(idCounter, SuitJoker, 0))
 		idCounter++
 	}
@@ -25,7 +27,6 @@ func NewDeck() Deck {
 }
 
 func (d Deck) Shuffle() {
-	// ランダムに並び替える
 	rand.Shuffle(len(d), func(i, j int) {
 		d[i], d[j] = d[j], d[i]
 	})
@@ -33,12 +34,9 @@ func (d Deck) Shuffle() {
 
 func (d Deck) Deal(numPlayers int) [][]*Card {
 	hands := make([][]*Card, numPlayers)
-
-	// 山札のカードを1枚ずつ配っていく
 	for i, card := range d {
 		playerIndex := i % numPlayers
 		hands[playerIndex] = append(hands[playerIndex], card)
 	}
-
 	return hands
 }

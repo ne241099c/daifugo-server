@@ -31,10 +31,20 @@ func (s Suit) String() string {
 
 type Rank int
 
+const (
+	RankAce   = 1
+	RankTwo   = 2
+	RankThree = 3
+	RankEight = 8
+	RankJack  = 11
+	RankQueen = 12
+	RankKing  = 13
+)
+
 type Card struct {
-	ID   int
-	Suit Suit
-	Rank Rank
+	ID   int  `json:"id"`
+	Suit Suit `json:"suit"`
+	Rank Rank `json:"rank"`
 }
 
 func NewCard(id int, suit Suit, rank Rank) *Card {
@@ -49,16 +59,15 @@ func (c *Card) String() string {
 	if c.Suit == SuitJoker {
 		return "Joker"
 	}
-
 	rankStr := fmt.Sprintf("%d", c.Rank)
 	switch c.Rank {
-	case 1:
+	case RankAce:
 		rankStr = "A"
-	case 11:
+	case RankJack:
 		rankStr = "J"
-	case 12:
+	case RankQueen:
 		rankStr = "Q"
-	case 13:
+	case RankKing:
 		rankStr = "K"
 	}
 	return fmt.Sprintf("%s%s", c.Suit.String(), rankStr)

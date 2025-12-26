@@ -2,26 +2,19 @@ package game
 
 import (
 	"errors"
-	"sort"
+	"fmt"
 )
 
 type HandType int
 
 const (
-	HandTypeInvalid  HandType = iota // 無効
-	HandTypeSingle                   // 単騎
-	HandTypePair                     // ペア
-	HandTypeSequence                 // 階段
+	HandTypeInvalid HandType = iota
+	HandTypeSingle
+	HandTypePair
+	HandTypeSequence
 )
 
-const (
-	RankAce   = 1
-	RankTwo   = 2
-	RankEight = 8
-	RankJack  = 11
-	RankThree = 3
-)
-
+// AnalyzeHand は手札の役と強さを判定します
 func AnalyzeHand(cards []*Card, isRev bool) (HandType, int, error) {
 	count := len(cards)
 	if count == 0 {
@@ -33,17 +26,14 @@ func AnalyzeHand(cards []*Card, isRev bool) (HandType, int, error) {
 		return HandTypeSingle, GetStrength(cards[0], isRev), nil
 	}
 
-	// 2. ペア判定
-	if isPair(cards) {
-		// ペアの強さは構成カードの強さ（ジョーカー以外）
+	// 2. ペア
+	if IsPair(cards) {
 		str := calculateGroupStrength(cards, isRev)
 		return HandTypePair, str, nil
 	}
 
-	// 3. 階段判定
-	if isSequence(cards) {
-		// 階段の強さは「一番弱いカード」または「一番強いカード」で定義できますが、
-		// ここでは比較しやすいように「一番強いカードの強さ」を返します
+	// 3. 階段
+	if IsSequence(cards) {
 		str := calculateSequenceStrength(cards, isRev)
 		return HandTypeSequence, str, nil
 	}
@@ -51,106 +41,58 @@ func AnalyzeHand(cards []*Card, isRev bool) (HandType, int, error) {
 	return HandTypeInvalid, 0, errors.New("役として成立していません")
 }
 
+func ValidatePlay(fieldCards []*Card, fieldType HandType, fieldStrength int, playCards []*Card, playType HandType, playStrength int) error {
+	// 場に何もないならOK
+	if len(fieldCards) == 0 {
+		return nil
+	}
+
+	// スペ3返し（ジョーカー単騎(最強)に対して、スペードの3）
+	// fieldStrengthが最強(99)かつ単騎の場合
+	if fieldType == HandTypeSingle && len(fieldCards) == 1 && fieldCards[0].Suit == SuitJoker {
+		if len(playCards) == 1 && playCards[0].Suit == SuitSpade && playCards[0].Rank == RankThree {
+			return nil // スペ3返し成功
+		}
+	}
+
+	// 役の種類一致
+	if fieldType != playType {
+		return fmt.Errorf("場のカードと役の種類が違います")
+	}
+
+	// 枚数一致
+	if len(fieldCards) != len(playCards) {
+		return fmt.Errorf("場のカードと枚数が違います")
+	}
+
+	// 強さ比較（同値不可）
+	if playStrength <= fieldStrength {
+		return fmt.Errorf("場のカードより弱いです")
+	}
+
+	return nil
+}
+
 func GetStrength(c *Card, isRev bool) int {
 	if c.Suit == SuitJoker {
 		return 99
 	}
-
 	strength := 0
-
 	switch c.Rank {
-	case 1: // Ace
+	case RankAce:
+		strength = 13
+	case RankTwo:
 		strength = 14
-	case 2: // Two
-		strength = 15
 	default:
-		strength = int(c.Rank)
+		strength = int(c.Rank) - 2
 	}
-
 	if isRev {
-		strength *= -1
+		// 簡易反転: 14(2) -> 1, 1(3) -> 14
+		// 通常: 3=1, ... 2=14 (range 1-14)
+		// 革命: 3=14, ... 2=1
+		strength = 15 - strength
 	}
-
 	return strength
-}
-
-func IsStronger(candidate, target *Card, isRev bool) bool {
-	if target == nil {
-		return true
-	}
-
-	myStrength := GetStrength(candidate, isRev)
-	targetStrength := GetStrength(target, isRev)
-
-	return myStrength > targetStrength
-}
-
-func isPair(cards []*Card) bool {
-	if len(cards) < 2 {
-		return false
-	}
-
-	var baseRank Rank = -1
-	for _, c := range cards {
-		if c.Suit == SuitJoker {
-			continue
-		}
-		if baseRank == -1 {
-			baseRank = c.Rank
-		} else if baseRank != c.Rank {
-			return false
-		}
-	}
-	return true
-}
-
-func isSequence(cards []*Card) bool {
-	if len(cards) < 3 {
-		return false
-	}
-
-	// ジョーカーを除いたカードを抽出
-	var normals []*Card
-	jokers := 0
-	for _, c := range cards {
-		if c.Suit == SuitJoker {
-			jokers++
-		} else {
-			normals = append(normals, c)
-		}
-	}
-
-	// ジョーカーのみは階段ではない
-	if len(normals) == 0 {
-		return false
-	}
-
-	// ランク順にソート
-	sort.Slice(normals, func(i, j int) bool {
-		return normals[i].Rank < normals[j].Rank
-	})
-
-	// 連続チェック
-	for i := 0; i < len(normals)-1; i++ {
-		diff := int(normals[i+1].Rank) - int(normals[i].Rank)
-
-		// 同じ数字は階段不可
-		if diff == 0 {
-			return false
-		}
-
-		// 差が1なら連続
-		// 差が2以上なら、その分ジョーカーが必要
-		neededJokers := diff - 1
-		if neededJokers > 0 {
-			jokers -= neededJokers
-			if jokers < 0 {
-				return false // ジョーカー不足
-			}
-		}
-	}
-
-	return true
 }
 
 func calculateGroupStrength(cards []*Card, isRev bool) int {
@@ -159,37 +101,22 @@ func calculateGroupStrength(cards []*Card, isRev bool) int {
 			return GetStrength(c, isRev)
 		}
 	}
-	// ジョーカーのみの場合
-	return GetStrength(cards[0], isRev)
+	return 99 // All Jokers
 }
 
 func calculateSequenceStrength(cards []*Card, isRev bool) int {
-	// 階段の強さ判定は一番強いカードを基準にする
-	maxStr := -999
+	// 階段の強さは「一番強いカード」とする（元のロジック準拠）
+	// ただし革命中は「数字が小さいほうが強い」ので注意が必要だが、
+	// GetStrengthが反転しているので、ここでのMax計算は「StrengthのMax」を取ればよい
+	maxStr := -1
 	for _, c := range cards {
-		s := GetStrength(c, isRev)
-		if s > maxStr {
-			maxStr = s
+		if c.Suit != SuitJoker {
+			s := GetStrength(c, isRev)
+			if s > maxStr {
+				maxStr = s
+			}
 		}
 	}
+	// ジョーカー補正は複雑だが、基本は通常カードのStrengthに依存
 	return maxStr
-}
-
-// 特殊効果判定用
-func ContainsEight(cards []*Card) bool {
-	for _, c := range cards {
-		if c.Suit != SuitJoker && c.Rank == RankEight {
-			return true
-		}
-	}
-	return false
-}
-
-func ContainsJack(cards []*Card) bool {
-	for _, c := range cards {
-		if c.Suit != SuitJoker && c.Rank == RankJack {
-			return true
-		}
-	}
-	return false
 }
