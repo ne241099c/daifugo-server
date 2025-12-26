@@ -13,6 +13,4 @@ type UserRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (*model.User, error)
 	// SaveUser は、ユーザを保存する
 	SaveUser(ctx context.Context, user *model.User) error
-	// FindByID は、IDからユーザを取得する
-	FindByID(ctx context.Context, id int64) (*model.User, error)
 }

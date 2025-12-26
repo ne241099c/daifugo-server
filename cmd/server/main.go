@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/ne241099/daifugo-server/graph"
 	"github.com/ne241099/daifugo-server/infra/inmem"
+	"github.com/ne241099/daifugo-server/infra/mysql"
 	"github.com/ne241099/daifugo-server/internal/auth"
 	"github.com/ne241099/daifugo-server/internal/config"
 	internalMiddleware "github.com/ne241099/daifugo-server/internal/middleware"
@@ -16,8 +17,14 @@ import (
 func main() {
 	cfg := config.Load()
 
+	db, err := mysql.NewDB(cfg)
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
 	// リポジトリ初期化
-	userRepo := inmem.NewInmemUserRepository()
+	userRepo := mysql.NewMySQLUserRepository(db)
 	roomRepo := inmem.NewInmemRoomRepository()
 
 	// Configから読み込んだ秘密鍵を使用する

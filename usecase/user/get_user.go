@@ -22,5 +22,5 @@ func NewGetUserUseCase(r repository.UserRepository) GetUserUseCase {
 }
 
 func (u *GetUserInteractor) Execute(ctx context.Context, id int64) (*model.User, error) {
-	return u.UserRepository.FindByID(ctx, id)
+	return u.UserRepository.GetUser(ctx, id)
 }
