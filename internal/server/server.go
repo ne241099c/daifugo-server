@@ -18,7 +18,12 @@ func New(resolver *graph.Resolver, hub *sse.Hub, authMiddleware *internalMiddlew
 	// ミドルウェアの設定
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
-	e.Use(middleware.CORS()) // フロントエンドとの通信用
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		// フロントエンドとの通信用
+		AllowOrigins: []string{"http://localhost:5173"},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
+	}))
+	// 認証ミドルウェアの適用
 	e.Use(echo.WrapMiddleware(authMiddleware.Authenticate))
 
 	// GraphQL サーバーの設定

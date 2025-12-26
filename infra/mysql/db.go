@@ -20,8 +20,22 @@ func NewDB(cfg *config.Config) (*sql.DB, error) {
 	}
 
 	// 接続確認
-	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("failed to ping db: %w", err)
+	// if err := db.Ping(); err != nil {
+	// 	return nil, fmt.Errorf("failed to ping db: %w", err)
+	// }
+
+	var pingErr error
+	for i := 0; i < 10; i++ {
+		pingErr = db.Ping()
+		if pingErr == nil {
+			break // 接続成功
+		}
+		fmt.Printf("DB接続試行中... (%d/10): %v\n", i+1, pingErr)
+		time.Sleep(2 * time.Second) // 2秒待って再試行
+	}
+
+	if pingErr != nil {
+		return nil, fmt.Errorf("failed to ping db after retries: %w", pingErr)
 	}
 
 	// 接続プールの設定
