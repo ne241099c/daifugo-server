@@ -2,6 +2,7 @@ package graph
 
 import (
 	"github.com/ne241099/daifugo-server/internal/sse"
+	"github.com/ne241099/daifugo-server/usecase/game"
 	"github.com/ne241099/daifugo-server/usecase/room"
 	"github.com/ne241099/daifugo-server/usecase/user"
 )
@@ -18,4 +19,7 @@ type Resolver struct {
 	CreateRoomUseCase room.CreateRoomUseCase
 	JoinRoomUseCase   room.JoinRoomUseCase
 	ListRoomsUseCase  room.ListRoomsUseCase
+	StartGameUseCase  *game.StartGameInteractor
+	PlayCardUseCase   *game.PlayCardInteractor
+	PassUseCase       *game.PassInteractor
 }

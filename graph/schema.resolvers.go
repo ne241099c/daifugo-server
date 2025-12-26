@@ -41,14 +41,7 @@ func (r *mutationResolver) CreateRoom(ctx context.Context, name string) (*model.
 	}
 
 	// ドメインモデル から GraphQLモデル への変換
-	gqlRoom := &model.Room{
-		ID:        strconv.FormatInt(createdRoom.ID, 10),
-		Name:      createdRoom.Name,
-		OwnerID:   strconv.FormatInt(createdRoom.OwnerID, 10),
-		MemberIds: []string{strconv.FormatInt(createdRoom.OwnerID, 10)},
-		CreatedAt: createdRoom.CreatedAt,
-		UpdatedAt: createdRoom.UpdatedAt,
-	}
+	gqlRoom := mapRoomToGraphQL(createdRoom)
 
 	r.Hub.Publish("room_created", gqlRoom, nil)
 	return gqlRoom, nil
@@ -73,17 +66,87 @@ func (r *mutationResolver) JoinRoom(ctx context.Context, roomID string) (*model.
 		memberIdsStr[i] = strconv.FormatInt(mid, 10)
 	}
 
-	gqlRoom := &model.Room{
-		ID:        strconv.FormatInt(joinedRoom.ID, 10),
-		Name:      joinedRoom.Name,
-		OwnerID:   strconv.FormatInt(joinedRoom.OwnerID, 10),
-		MemberIds: memberIdsStr,
-		CreatedAt: joinedRoom.CreatedAt,
-		UpdatedAt: joinedRoom.UpdatedAt,
-	}
+	gqlRoom := mapRoomToGraphQL(joinedRoom)
 
 	r.Hub.Publish("room_updated", gqlRoom, nil)
 	return gqlRoom, nil
+}
+
+// StartGame is the resolver for the startGame field.
+func (r *mutationResolver) StartGame(ctx context.Context, roomID string) (*model.Room, error) {
+	rid, _ := strconv.ParseInt(roomID, 10, 64)
+
+	// UseCaseを実行
+	room, err := r.StartGameUseCase.Execute(ctx, rid)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.Hub != nil {
+		r.Hub.Publish(roomID, "game_started", nil)
+	}
+
+	return mapRoomToGraphQL(room), nil
+}
+
+// PlayCard is the resolver for the playCard field.
+func (r *mutationResolver) PlayCard(ctx context.Context, roomID string, cardIds []int32) (*model.Room, error) {
+	rid, _ := strconv.ParseInt(roomID, 10, 64)
+
+	// 現在のターンのユーザーを特定（仮実装）
+	// UseCaseが持っているRepoを使って部屋情報を取得
+	currentRoom, err := r.PlayCardUseCase.RoomRepository.GetRoomByID(ctx, rid)
+	if err != nil {
+		return nil, fmt.Errorf("room not found")
+	}
+	if currentRoom.Game == nil {
+		return nil, fmt.Errorf("game not started")
+	}
+	userID := currentRoom.Game.Players[currentRoom.Game.Turn].UserID
+
+	targetCardIDs := make([]int, len(cardIds))
+	for i, id := range cardIds {
+		targetCardIDs[i] = int(id)
+	}
+
+	// UseCaseを実行
+	room, err := r.PlayCardUseCase.Execute(ctx, rid, userID, targetCardIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.Hub != nil {
+		r.Hub.Publish(roomID, "game_update", nil)
+	}
+
+	return mapRoomToGraphQL(room), nil
+}
+
+// Pass is the resolver for the pass field.
+func (r *mutationResolver) Pass(ctx context.Context, roomID string) (*model.Room, error) {
+	rid, _ := strconv.ParseInt(roomID, 10, 64)
+
+	// ユーザー特定（仮実装）
+	currentRoom, err := r.PassUseCase.RoomRepository.GetRoomByID(ctx, rid)
+	if err != nil {
+		return nil, fmt.Errorf("room not found")
+	}
+	if currentRoom.Game == nil {
+		return nil, fmt.Errorf("game not started")
+	}
+	userID := currentRoom.Game.Players[currentRoom.Game.Turn].UserID
+
+	// UseCaseを実行
+	room, err := r.PassUseCase.Execute(ctx, rid, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.Hub != nil {
+		r.Hub.Publish(roomID, "game_update", nil)
+	}
+
+	return mapRoomToGraphQL(room), nil
 }
 
 // Hello is the resolver for the hello field.
@@ -120,6 +183,65 @@ func (r *queryResolver) Rooms(ctx context.Context) ([]*model.Room, error) {
 	}
 
 	return gqlRooms, nil
+}
+
+// Room is the resolver for the room field.
+func (r *queryResolver) Room(ctx context.Context, id string) (*model.Room, error) {
+	rid, _ := strconv.ParseInt(id, 10, 64)
+
+	// StartGameUseCaseが持っているRoomRepoを借りて検索（便宜的措置）
+	// 本来は GetRoomUseCase を作るか、ListRoomsUseCaseなど適切な場所から呼ぶべきですが、
+	// ここでは既存のリポジトリを使って実装します。
+	room, err := r.StartGameUseCase.RoomRepository.GetRoomByID(ctx, rid)
+	if err != nil {
+		return nil, err
+	}
+	return mapRoomToGraphQL(room), nil
+}
+
+// User is the resolver for the user field.
+func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
+	userID, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user id: %w", err)
+	}
+
+	// UseCaseを使ってDBから検索
+	u, err := r.GetUserUseCase.Execute(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("user not found: %w", err)
+	}
+
+	// GraphQLの型に変換して返す
+	return &model.User{
+		ID:        strconv.FormatInt(u.ID, 10),
+		Name:      u.Name,
+		Email:     u.Email,
+		CreatedAt: u.CreatedAt,
+		UpdatedAt: u.UpdatedAt,
+	}, nil
+}
+
+// Me is the resolver for the me field.
+func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
+	// userID := middleware.GetUserID(ctx)
+
+	// 今回は開発用としてID=1（大富豪 太郎）を固定で返す
+	var currentUserID int64 = 1
+
+	// UseCaseを使って情報を取得
+	u, err := r.GetUserUseCase.Execute(ctx, currentUserID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current user: %w", err)
+	}
+
+	return &model.User{
+		ID:        strconv.FormatInt(u.ID, 10),
+		Name:      u.Name,
+		Email:     u.Email,
+		CreatedAt: u.CreatedAt,
+		UpdatedAt: u.UpdatedAt,
+	}, nil
 }
 
 // Owner is the resolver for the owner field.

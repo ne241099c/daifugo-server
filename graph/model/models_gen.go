@@ -6,6 +6,26 @@ import (
 	"time"
 )
 
+type Card struct {
+	ID   int32  `json:"id"`
+	Suit string `json:"suit"`
+	Rank int32  `json:"rank"`
+}
+
+type Game struct {
+	Players      []*GamePlayer `json:"players"`
+	TurnUserID   string        `json:"turnUserId"`
+	FieldCards   []*Card       `json:"fieldCards"`
+	IsRevolution bool          `json:"isRevolution"`
+}
+
+type GamePlayer struct {
+	UserID string  `json:"userId"`
+	User   *User   `json:"user"`
+	Hand   []*Card `json:"hand"`
+	Rank   int32   `json:"rank"`
+}
+
 type Mutation struct {
 }
 
@@ -19,6 +39,7 @@ type Room struct {
 	MemberIds []string  `json:"memberIds"`
 	Owner     *User     `json:"owner"`
 	Members   []*User   `json:"members"`
+	Game      *Game     `json:"game,omitempty"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }

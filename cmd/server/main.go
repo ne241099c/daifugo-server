@@ -5,6 +5,7 @@ import (
 	"github.com/ne241099/daifugo-server/infra/inmem"
 	"github.com/ne241099/daifugo-server/internal/server"
 	"github.com/ne241099/daifugo-server/internal/sse"
+	"github.com/ne241099/daifugo-server/usecase/game"
 	"github.com/ne241099/daifugo-server/usecase/room"
 	"github.com/ne241099/daifugo-server/usecase/user"
 )
@@ -33,6 +34,15 @@ func main() {
 			RoomRepository: roomRepo,
 		},
 		ListRoomsUseCase: &room.ListRoomsInteractor{
+			RoomRepository: roomRepo,
+		},
+		StartGameUseCase: &game.StartGameInteractor{
+			RoomRepository: roomRepo,
+		},
+		PlayCardUseCase: &game.PlayCardInteractor{
+			RoomRepository: roomRepo,
+		},
+		PassUseCase: &game.PassInteractor{
 			RoomRepository: roomRepo,
 		},
 	}
