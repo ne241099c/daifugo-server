@@ -5,8 +5,6 @@ import (
 	"fmt"
 )
 
-// Player 構造体
-// システム整合性のため ID -> UserID に変更
 type Player struct {
 	UserID int64   `json:"user_id"`
 	Hand   []*Card `json:"hand"`
@@ -53,16 +51,14 @@ type Game struct {
 	Players         []*Player
 	FinishedPlayers []*Player
 
-	// システム整合性のため TableCards -> FieldCards に変更
 	FieldCards []*Card
 
-	// 直前の役情報（判定用）
+	// 直前の役情報
 	LastHandType     HandType
 	LastHandStrength int
 
 	LastPlayerID int64
 
-	// システム整合性のため TurnIndex -> Turn に変更
 	Turn         int
 	IsRevolution bool
 	PassCount    int
@@ -77,7 +73,7 @@ func NewGame(memberIDs []int64) *Game {
 	players := make([]*Player, len(memberIDs))
 	for i, uid := range memberIDs {
 		players[i] = &Player{
-			UserID: uid, // ID -> UserID
+			UserID: uid,
 			Hand:   hands[i],
 			Name:   fmt.Sprintf("User%d", uid),
 			Rank:   0,
@@ -86,50 +82,48 @@ func NewGame(memberIDs []int64) *Game {
 
 	return &Game{
 		Players:    players,
-		FieldCards: []*Card{}, // TableCards -> FieldCards
-		Turn:       0,         // TurnIndex -> Turn
+		FieldCards: []*Card{},
+		Turn:       0,
 	}
 }
 
 // Play カードを出す
 func (g *Game) Play(userID int64, cards []*Card) error {
-	player := g.Players[g.Turn] // TurnIndex -> Turn
+	player := g.Players[g.Turn]
 
-	// 1. ターンの確認
-	if player.UserID != userID { // ID -> UserID
+	// ターンの確認
+	if player.UserID != userID {
 		return errors.New("あなたのターンではありません")
 	}
 
-	// 2. 手札所有チェック
+	// 手札所有チェック
 	if !player.HasCards(cards) {
 		return errors.New("持っていないカードが含まれています")
 	}
 
-	// 3. 役の解析
+	// 役の解析
 	hType, strength, err := AnalyzeHand(cards, g.IsRevolution)
 	if err != nil {
 		return err
 	}
 
-	// 4. ルール判定 (ValidatePlay)
-	// 場が流れている(FieldCardsが空)ならチェック不要
-	// TableCards -> FieldCards
+	// ルール判定
+	// 場が流れているならチェック不要
 	if err := ValidatePlay(g.FieldCards, g.LastHandType, g.LastHandStrength, cards, hType, strength); err != nil {
 		return err
 	}
 
-	// --- 実行 ---
 	player.RemoveCards(cards)
 
 	// 場の更新
-	g.FieldCards = cards // TableCards -> FieldCards
+	g.FieldCards = cards
 	g.LastHandType = hType
 	g.LastHandStrength = strength
 	g.LastPlayerID = userID
 	g.PassCount = 0
 
-	// 5. 特殊効果
-	// 革命 (4枚以上)
+	// 特殊効果
+	// 革命
 	if len(cards) >= 4 {
 		g.IsRevolution = !g.IsRevolution
 	}
@@ -137,13 +131,13 @@ func (g *Game) Play(userID int64, cards []*Card) error {
 	// 8切り判定
 	is8giri := false
 	for _, c := range cards {
-		if c.Rank == RankEight { // RankEightはcard.go/rules.goの定義に依存
+		if c.Rank == RankEight {
 			is8giri = true
 			break
 		}
 	}
 
-	// 6. あがり判定
+	// あがり判定
 	if len(player.Hand) == 0 {
 		g.handleWin(player)
 		// あがった場合は8切りでもターンを進める
@@ -151,7 +145,7 @@ func (g *Game) Play(userID int64, cards []*Card) error {
 		return nil
 	}
 
-	// 7. ターン進行
+	// ターン進行
 	if is8giri {
 		// 場を流して同じ人のターン
 		g.clearTable()
@@ -163,10 +157,10 @@ func (g *Game) Play(userID int64, cards []*Card) error {
 	return nil
 }
 
-// Pass パス
+// Pass
 func (g *Game) Pass(userID int64) error {
-	player := g.Players[g.Turn]  // TurnIndex -> Turn
-	if player.UserID != userID { // ID -> UserID
+	player := g.Players[g.Turn]
+	if player.UserID != userID {
 		return errors.New("あなたのターンではありません")
 	}
 
@@ -178,21 +172,21 @@ func (g *Game) Pass(userID int64) error {
 	if activeCount > 0 && g.PassCount >= activeCount-1 {
 		g.clearTable()
 		// パスで流れたら、親（最後にカードを出した人）のターンにする
-		// ただし今回は簡易的に、現在手番の人（advanceTurn後の人）を親としてスタートさせる
+		// ただし今回は簡易的に、現在手番の人を親としてスタートさせる
 	}
 
 	return nil
 }
 
 func (g *Game) clearTable() {
-	g.FieldCards = []*Card{} // TableCards -> FieldCards
+	g.FieldCards = []*Card{}
 	g.LastHandType = HandTypeInvalid
 	g.LastHandStrength = 0
 	g.PassCount = 0
 }
 
 func (g *Game) advanceTurn() {
-	startTurn := g.Turn // TurnIndex -> Turn
+	startTurn := g.Turn
 	for {
 		g.Turn++
 		if g.Turn >= len(g.Players) {

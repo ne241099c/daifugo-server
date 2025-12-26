@@ -2,13 +2,11 @@ package game
 
 import (
 	"math/rand"
-	"time"
 )
 
 type Deck []*Card
 
 func NewDeck(jokerCount int) Deck {
-	rand.Seed(time.Now().UnixNano()) // シード初期化を追加（念の為）
 	d := make(Deck, 0, 52+jokerCount)
 	idCounter := 1
 

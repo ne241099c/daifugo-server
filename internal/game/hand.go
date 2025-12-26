@@ -22,8 +22,6 @@ func IsPair(cards []*Card) bool {
 	return true
 }
 
-// 階段判定用ランク変換（A=1, 2=2 ... 13=K）
-// 強さではなく「並び順」を見るので、A(1)と2(2)はつながる
 func toSeqRank(c *Card) int {
 	return int(c.Rank)
 }
