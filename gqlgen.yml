@@ -168,4 +168,11 @@ models:
         resolver: true
       members:
         resolver: true
+
+  Game:
+    model: github.com/ne241099/daifugo-server/internal/game.Game
+  GamePlayer:
+    model: github.com/ne241099/daifugo-server/internal/game.Player
+  Card:
+    model: github.com/ne241099/daifugo-server/internal/game.Card
       

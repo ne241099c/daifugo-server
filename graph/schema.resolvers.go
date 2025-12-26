@@ -13,7 +13,43 @@ import (
 
 	"github.com/ne241099/daifugo-server/graph/model"
 	"github.com/ne241099/daifugo-server/internal/auth"
+	"github.com/ne241099/daifugo-server/internal/game"
 )
+
+// ID is the resolver for the id field.
+func (r *cardResolver) ID(ctx context.Context, obj *game.Card) (int32, error) {
+	panic(fmt.Errorf("not implemented: ID - id"))
+}
+
+// Suit is the resolver for the suit field.
+func (r *cardResolver) Suit(ctx context.Context, obj *game.Card) (string, error) {
+	panic(fmt.Errorf("not implemented: Suit - suit"))
+}
+
+// Rank is the resolver for the rank field.
+func (r *cardResolver) Rank(ctx context.Context, obj *game.Card) (int32, error) {
+	panic(fmt.Errorf("not implemented: Rank - rank"))
+}
+
+// Turn is the resolver for the turn field.
+func (r *gameResolver) Turn(ctx context.Context, obj *game.Game) (int32, error) {
+	panic(fmt.Errorf("not implemented: Turn - turn"))
+}
+
+// PassCount is the resolver for the passCount field.
+func (r *gameResolver) PassCount(ctx context.Context, obj *game.Game) (int32, error) {
+	panic(fmt.Errorf("not implemented: PassCount - passCount"))
+}
+
+// User is the resolver for the user field.
+func (r *gamePlayerResolver) User(ctx context.Context, obj *game.Player) (*model.User, error) {
+	panic(fmt.Errorf("not implemented: User - user"))
+}
+
+// Rank is the resolver for the rank field.
+func (r *gamePlayerResolver) Rank(ctx context.Context, obj *game.Player) (int32, error) {
+	panic(fmt.Errorf("not implemented: Rank - rank"))
+}
 
 // SignUp is the resolver for the signUp field.
 func (r *mutationResolver) SignUp(ctx context.Context, in model.SignUpInput) (*model.User, error) {
@@ -320,6 +356,15 @@ func (r *roomResolver) Members(ctx context.Context, obj *model.Room) ([]*model.U
 	return gqlUsers, nil
 }
 
+// Card returns CardResolver implementation.
+func (r *Resolver) Card() CardResolver { return &cardResolver{r} }
+
+// Game returns GameResolver implementation.
+func (r *Resolver) Game() GameResolver { return &gameResolver{r} }
+
+// GamePlayer returns GamePlayerResolver implementation.
+func (r *Resolver) GamePlayer() GamePlayerResolver { return &gamePlayerResolver{r} }
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 
@@ -329,6 +374,9 @@ func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 // Room returns RoomResolver implementation.
 func (r *Resolver) Room() RoomResolver { return &roomResolver{r} }
 
+type cardResolver struct{ *Resolver }
+type gameResolver struct{ *Resolver }
+type gamePlayerResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type roomResolver struct{ *Resolver }

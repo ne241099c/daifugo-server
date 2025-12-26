@@ -43,10 +43,12 @@ type GamePlayer {
 }
 
 type Game {
-  players: [GamePlayer!]!
-  turnUserId: ID!
+  turn: Int!
   fieldCards: [Card!]!
   isRevolution: Boolean!
+  players: [GamePlayer!]!
+  finishedPlayers: [GamePlayer!]
+  passCount: Int!
 }
 
 input signUpInput {
