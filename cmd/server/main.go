@@ -3,6 +3,8 @@ package main
 import (
 	"github.com/ne241099/daifugo-server/graph"
 	"github.com/ne241099/daifugo-server/infra/inmem"
+	"github.com/ne241099/daifugo-server/internal/auth"
+	internalMiddleware "github.com/ne241099/daifugo-server/internal/middleware"
 	"github.com/ne241099/daifugo-server/internal/server"
 	"github.com/ne241099/daifugo-server/internal/sse"
 	"github.com/ne241099/daifugo-server/usecase/game"
@@ -14,6 +16,9 @@ func main() {
 	// リポジトリ初期化
 	userRepo := inmem.NewInmemUserRepository()
 	roomRepo := inmem.NewInmemRoomRepository()
+
+	authenticator := auth.NewDummyAuthenticator()
+	authMiddleware := internalMiddleware.NewAuthMiddleware(authenticator)
 
 	// SSE Hub 作成
 	hub := sse.NewHub()
@@ -50,7 +55,7 @@ func main() {
 		},
 	}
 	// サーバー作成
-	srv := server.New(resolver, hub)
+	srv := server.New(resolver, hub, authMiddleware)
 
 	// サーバー起動
 	srv.Logger.Fatal(srv.Start(":8080"))

@@ -2,18 +2,20 @@ package middleware
 
 import (
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/ne241099/daifugo-server/internal/auth"
 )
 
 type AuthMiddleware struct {
-	// 今回は外部依存がないためフィールドなし
+	authenticator auth.Authenticator
 }
 
-func NewAuthMiddleware() *AuthMiddleware {
-	return &AuthMiddleware{}
+// コンストラクタで Authenticator を受け取る
+func NewAuthMiddleware(authenticator auth.Authenticator) *AuthMiddleware {
+	return &AuthMiddleware{
+		authenticator: authenticator,
+	}
 }
 
 func (m *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
@@ -21,7 +23,6 @@ func (m *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 		// Authorizationヘッダーの取得
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
-			// ヘッダーがない場合は未認証としてそのまま通す
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -29,21 +30,15 @@ func (m *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 		// "Bearer <token>" 形式の解析
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			// 形式不正
 			next.ServeHTTP(w, r)
 			return
 		}
 		token := parts[1]
 
-		// トークンの検証とユーザーIDの特定
-		// 【本来の形式】
-		// ここで JWT の Verify や、DB の Session Token 照合を行います。
-		// 例: uid, err := m.authClient.VerifyIDToken(ctx, token)
-		uid, err := m.verifyTokenDummy(token)
+		// インターフェース経由で検証を実行
+		uid, err := m.authenticator.VerifyToken(r.Context(), token)
 		if err != nil {
-			// トークンが無効な場合
-			// 厳密に 401 を返すか、未認証として通すかは要件によりますが、
-			// ここでは未認証（Contextにセットしない）として通します。
+			// 検証失敗時は未認証扱いとして通す
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -52,15 +47,4 @@ func (m *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 		ctx := auth.WithUserID(r.Context(), uid)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
-}
-
-func (m *AuthMiddleware) verifyTokenDummy(token string) (int64, error) {
-	// 簡易実装: "token:" というプレフィックスを除去してID化する
-	// 実際にはこんなことはせず、暗号化されたトークンを検証します
-	if strings.HasPrefix(token, "token:") {
-		idStr := strings.TrimPrefix(token, "token:")
-		return strconv.ParseInt(idStr, 10, 64)
-	}
-	// 検証失敗
-	return 0, http.ErrNoCookie
 }

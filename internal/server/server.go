@@ -12,15 +12,14 @@ import (
 
 // New は設定済みの Echo サーバーインスタンスを返します
 // 必要な依存関係（ResolverやHub）は引数として受け取ります
-func New(resolver *graph.Resolver, hub *sse.Hub) *echo.Echo {
+func New(resolver *graph.Resolver, hub *sse.Hub, authMiddleware *internalMiddleware.AuthMiddleware) *echo.Echo {
 	e := echo.New()
 
 	// ミドルウェアの設定
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS()) // フロントエンドとの通信用
-	authMid := internalMiddleware.NewAuthMiddleware()
-	e.Use(echo.WrapMiddleware(authMid.Authenticate))
+	e.Use(echo.WrapMiddleware(authMiddleware.Authenticate))
 
 	// GraphQL サーバーの設定
 	gqlServer := handler.NewDefaultServer(
