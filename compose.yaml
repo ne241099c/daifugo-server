@@ -5,3 +5,24 @@ services:
       - "8080:8080"
     volumes:
       - .:/app
+    environment:
+      - DB_USER=daifugo
+      - DB_PASSWORD=daifugo_pass
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=daifugo_db
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8.0
+    platform: linux/amd64
+    environment:
+      MYSQL_DATABASE: daifugo_db
+      MYSQL_USER: daifugo
+      MYSQL_PASSWORD: daifugo_pass
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d

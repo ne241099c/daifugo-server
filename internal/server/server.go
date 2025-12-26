@@ -10,8 +10,8 @@ import (
 	"github.com/ne241099/daifugo-server/internal/sse"
 )
 
-// New は設定済みの Echo サーバーインスタンスを返します
-// 必要な依存関係（ResolverやHub）は引数として受け取ります
+// New は設定済みの Echo サーバーインスタンスを返す
+// 必要な依存関係（ResolverやHub）は引数として受け取る
 func New(resolver *graph.Resolver, hub *sse.Hub, authMiddleware *internalMiddleware.AuthMiddleware) *echo.Echo {
 	e := echo.New()
 
@@ -40,7 +40,7 @@ func New(resolver *graph.Resolver, hub *sse.Hub, authMiddleware *internalMiddlew
 		return nil
 	})
 
-	// Playground（ブラウザ確認用）
+	// Playground
 	e.GET("/", func(c echo.Context) error {
 		playground.Handler("GraphQL Playground", "/query").ServeHTTP(c.Response(), c.Request())
 		return nil
