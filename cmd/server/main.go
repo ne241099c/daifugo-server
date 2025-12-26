@@ -4,6 +4,7 @@ import (
 	"github.com/ne241099/daifugo-server/graph"
 	"github.com/ne241099/daifugo-server/infra/inmem"
 	"github.com/ne241099/daifugo-server/internal/auth"
+	"github.com/ne241099/daifugo-server/internal/config"
 	internalMiddleware "github.com/ne241099/daifugo-server/internal/middleware"
 	"github.com/ne241099/daifugo-server/internal/server"
 	"github.com/ne241099/daifugo-server/internal/sse"
@@ -13,11 +14,14 @@ import (
 )
 
 func main() {
+	cfg := config.Load()
+
 	// リポジトリ初期化
 	userRepo := inmem.NewInmemUserRepository()
 	roomRepo := inmem.NewInmemRoomRepository()
 
-	authenticator := auth.NewDummyAuthenticator()
+	// Configから読み込んだ秘密鍵を使用する
+	authenticator := auth.NewJWTAuthenticator(cfg.JWTSecret)
 	authMiddleware := internalMiddleware.NewAuthMiddleware(authenticator)
 
 	// SSE Hub 作成
@@ -58,5 +62,5 @@ func main() {
 	srv := server.New(resolver, hub, authMiddleware)
 
 	// サーバー起動
-	srv.Logger.Fatal(srv.Start(":8080"))
+	srv.Logger.Fatal(srv.Start(":" + cfg.Port))
 }
