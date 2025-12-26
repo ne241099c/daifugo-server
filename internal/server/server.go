@@ -6,6 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/ne241099/daifugo-server/graph"
+	internalMiddleware "github.com/ne241099/daifugo-server/internal/middleware"
 	"github.com/ne241099/daifugo-server/internal/sse"
 )
 
@@ -14,10 +15,11 @@ import (
 func New(resolver *graph.Resolver, hub *sse.Hub) *echo.Echo {
 	e := echo.New()
 
-	// 1. ミドルウェアの設定
+	// ミドルウェアの設定
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS()) // フロントエンドとの通信用
+	e.Use(echo.WrapMiddleware(internalMiddleware.AuthMiddleware))
 
 	// 2. GraphQL サーバーの設定
 	gqlServer := handler.NewDefaultServer(
@@ -26,7 +28,7 @@ func New(resolver *graph.Resolver, hub *sse.Hub) *echo.Echo {
 		),
 	)
 
-	// 3. ルーティングの定義
+	// ルーティングの定義
 
 	// GraphQL エンドポイント
 	e.POST("/query", func(c echo.Context) error {

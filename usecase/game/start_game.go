@@ -18,8 +18,8 @@ type StartGameInteractor struct {
 	RoomRepository repository.RoomRepository
 }
 
-func (r *StartGameInteractor) Execute(ctx context.Context, roomID int64) (*model.Room, error) {
-	room, err := r.RoomRepository.GetRoomByID(ctx, roomID)
+func (uc *StartGameInteractor) Execute(ctx context.Context, roomID int64) (*model.Room, error) {
+	room, err := uc.RoomRepository.GetRoomByID(ctx, roomID)
 	if err != nil {
 		return nil, fmt.Errorf("room not found: %w", err)
 	}

@@ -36,6 +36,9 @@ func main() {
 		ListRoomsUseCase: &room.ListRoomsInteractor{
 			RoomRepository: roomRepo,
 		},
+		GetRoomUseCase: &room.GetRoomInteractor{
+			RoomRepository: roomRepo,
+		},
 		StartGameUseCase: &game.StartGameInteractor{
 			RoomRepository: roomRepo,
 		},

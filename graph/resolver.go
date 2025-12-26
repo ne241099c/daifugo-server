@@ -19,6 +19,7 @@ type Resolver struct {
 	CreateRoomUseCase room.CreateRoomUseCase
 	JoinRoomUseCase   room.JoinRoomUseCase
 	ListRoomsUseCase  room.ListRoomsUseCase
+	GetRoomUseCase    room.GetRoomUseCase
 	StartGameUseCase  *game.StartGameInteractor
 	PlayCardUseCase   *game.PlayCardInteractor
 	PassUseCase       *game.PassInteractor

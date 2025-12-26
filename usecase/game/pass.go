@@ -18,8 +18,8 @@ type PassInteractor struct {
 	RoomRepository repository.RoomRepository
 }
 
-func (i *PassInteractor) Execute(ctx context.Context, roomID int64, userID int64) (*model.Room, error) {
-	room, err := i.RoomRepository.GetRoomByID(ctx, roomID)
+func (uc *PassInteractor) Execute(ctx context.Context, roomID int64, userID int64) (*model.Room, error) {
+	room, err := uc.RoomRepository.GetRoomByID(ctx, roomID)
 	if err != nil {
 		return nil, fmt.Errorf("room not found: %w", err)
 	}

@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	"github.com/ne241099/daifugo-server/graph/model"
+	"github.com/ne241099/daifugo-server/internal/auth"
 )
 
 // SignUp is the resolver for the signUp field.
@@ -32,7 +33,10 @@ func (r *mutationResolver) SignUp(ctx context.Context, in model.SignUpInput) (*m
 // CreateRoom is the resolver for the createRoom field.
 // 部屋を作成する
 func (r *mutationResolver) CreateRoom(ctx context.Context, name string) (*model.Room, error) {
-	var ownerID int64 = 1
+	ownerID, err := auth.GetUserID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("unauthorized: %w", err)
+	}
 
 	// UseCaseを実行
 	createdRoom, err := r.CreateRoomUseCase.Execute(ctx, name, ownerID)
@@ -55,7 +59,10 @@ func (r *mutationResolver) JoinRoom(ctx context.Context, roomID string) (*model.
 		return nil, errors.Join(err)
 	}
 
-	var userID int64 = 2
+	userID, err := auth.GetUserID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("unauthorized: %w", err)
+	}
 	joinedRoom, err := r.JoinRoomUseCase.Execute(ctx, rID, userID)
 	if err != nil {
 		return nil, err
@@ -93,16 +100,11 @@ func (r *mutationResolver) StartGame(ctx context.Context, roomID string) (*model
 func (r *mutationResolver) PlayCard(ctx context.Context, roomID string, cardIds []int32) (*model.Room, error) {
 	rid, _ := strconv.ParseInt(roomID, 10, 64)
 
-	// 現在のターンのユーザーを特定（仮実装）
-	// UseCaseが持っているRepoを使って部屋情報を取得
-	currentRoom, err := r.PlayCardUseCase.RoomRepository.GetRoomByID(ctx, rid)
+	// 実行ユーザーを取得
+	userID, err := auth.GetUserID(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("room not found")
+		return nil, fmt.Errorf("unauthorized: %w", err)
 	}
-	if currentRoom.Game == nil {
-		return nil, fmt.Errorf("game not started")
-	}
-	userID := currentRoom.Game.Players[currentRoom.Game.Turn].UserID
 
 	targetCardIDs := make([]int, len(cardIds))
 	for i, id := range cardIds {
@@ -126,15 +128,11 @@ func (r *mutationResolver) PlayCard(ctx context.Context, roomID string, cardIds 
 func (r *mutationResolver) Pass(ctx context.Context, roomID string) (*model.Room, error) {
 	rid, _ := strconv.ParseInt(roomID, 10, 64)
 
-	// ユーザー特定（仮実装）
-	currentRoom, err := r.PassUseCase.RoomRepository.GetRoomByID(ctx, rid)
+	// 実行ユーザーを取得
+	userID, err := auth.GetUserID(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("room not found")
+		return nil, fmt.Errorf("unauthorized: %w", err)
 	}
-	if currentRoom.Game == nil {
-		return nil, fmt.Errorf("game not started")
-	}
-	userID := currentRoom.Game.Players[currentRoom.Game.Turn].UserID
 
 	// UseCaseを実行
 	room, err := r.PassUseCase.Execute(ctx, rid, userID)
@@ -189,10 +187,7 @@ func (r *queryResolver) Rooms(ctx context.Context) ([]*model.Room, error) {
 func (r *queryResolver) Room(ctx context.Context, id string) (*model.Room, error) {
 	rid, _ := strconv.ParseInt(id, 10, 64)
 
-	// StartGameUseCaseが持っているRoomRepoを借りて検索（便宜的措置）
-	// 本来は GetRoomUseCase を作るか、ListRoomsUseCaseなど適切な場所から呼ぶべきですが、
-	// ここでは既存のリポジトリを使って実装します。
-	room, err := r.StartGameUseCase.RoomRepository.GetRoomByID(ctx, rid)
+	room, err := r.GetRoomUseCase.Execute(ctx, rid)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +201,7 @@ func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error
 		return nil, fmt.Errorf("invalid user id: %w", err)
 	}
 
-	// UseCaseを使ってDBから検索
+	// DBから検索
 	u, err := r.GetUserUseCase.Execute(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
@@ -224,10 +219,10 @@ func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error
 
 // Me is the resolver for the me field.
 func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
-	// userID := middleware.GetUserID(ctx)
-
-	// 今回は開発用としてID=1（大富豪 太郎）を固定で返す
-	var currentUserID int64 = 1
+	currentUserID, err := auth.GetUserID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("unauthorized: %w", err)
+	}
 
 	// UseCaseを使って情報を取得
 	u, err := r.GetUserUseCase.Execute(ctx, currentUserID)

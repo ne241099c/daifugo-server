@@ -19,8 +19,8 @@ type PlayCardInteractor struct {
 	RoomRepository repository.RoomRepository
 }
 
-func (i *PlayCardInteractor) Execute(ctx context.Context, roomID int64, userID int64, cardIDs []int) (*model.Room, error) {
-	room, err := i.RoomRepository.GetRoomByID(ctx, roomID)
+func (uc *PlayCardInteractor) Execute(ctx context.Context, roomID int64, userID int64, cardIDs []int) (*model.Room, error) {
+	room, err := uc.RoomRepository.GetRoomByID(ctx, roomID)
 	if err != nil {
 		return nil, fmt.Errorf("room not found: %w", err)
 	}
