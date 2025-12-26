@@ -19,9 +19,10 @@ func New(resolver *graph.Resolver, hub *sse.Hub) *echo.Echo {
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS()) // フロントエンドとの通信用
-	e.Use(echo.WrapMiddleware(internalMiddleware.AuthMiddleware))
+	authMid := internalMiddleware.NewAuthMiddleware()
+	e.Use(echo.WrapMiddleware(authMid.Authenticate))
 
-	// 2. GraphQL サーバーの設定
+	// GraphQL サーバーの設定
 	gqlServer := handler.NewDefaultServer(
 		graph.NewExecutableSchema(
 			graph.Config{Resolvers: resolver},
