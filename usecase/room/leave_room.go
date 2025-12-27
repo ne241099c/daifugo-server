@@ -23,6 +23,8 @@ func (uc *LeaveRoomInteractor) Execute(ctx context.Context, roomID int64, userID
 	if err != nil {
 		return fmt.Errorf("room not found: %w", err)
 	}
+	room.Mu.Lock()
+	defer room.Mu.Unlock()
 
 	// メンバーリストからユーザーを削除
 	newMembers := make([]int64, 0, len(room.MemberIDs))

@@ -23,6 +23,8 @@ func (uc *PassInteractor) Execute(ctx context.Context, roomID int64, userID int6
 	if err != nil {
 		return nil, fmt.Errorf("room not found: %w", err)
 	}
+	room.Mu.Lock()
+	defer room.Mu.Unlock()
 
 	if room.Game == nil {
 		return nil, fmt.Errorf("game not started")

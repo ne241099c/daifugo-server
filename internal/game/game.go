@@ -142,22 +142,6 @@ func (g *Game) Play(userID int64, cards []*Card) error {
 	// あがり判定
 	if len(player.Hand) == 0 {
 		g.handleWin(player)
-		// あがった場合は8切りでもターンを進める
-		g.advanceTurn()
-		return nil
-	}
-
-	// ターン進行
-	if is8giri {
-		// 場を流して同じ人のターン
-		g.clearTable()
-		// ターンは進めない
-	} else {
-		g.advanceTurn()
-	}
-
-	if len(player.Hand) == 0 {
-		g.handleWin(player)
 
 		// ゲーム終了判定
 		if g.IsFinished {

@@ -23,6 +23,8 @@ func (uc *JoinRoomInteractor) Execute(ctx context.Context, roomID int64, userID 
 	if err != nil {
 		return nil, err
 	}
+	room.Mu.Lock()
+	defer room.Mu.Unlock()
 
 	if room.IsFull() {
 		return nil, errors.New("room is full")

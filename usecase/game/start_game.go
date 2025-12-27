@@ -23,6 +23,8 @@ func (uc *StartGameInteractor) Execute(ctx context.Context, roomID int64) (*mode
 	if err != nil {
 		return nil, fmt.Errorf("room not found: %w", err)
 	}
+	room.Mu.Lock()
+	defer room.Mu.Unlock()
 
 	if room.Game != nil {
 		return nil, fmt.Errorf("game already started")
@@ -33,8 +35,9 @@ func (uc *StartGameInteractor) Execute(ctx context.Context, roomID int64) (*mode
 	}
 
 	room.StartGame()
-
-	// 本来はここで roomRepo.Update(room) などを呼んで保存します
+	if err := uc.RoomRepository.SaveRoom(ctx, room); err != nil {
+		return nil, err
+	}
 
 	return room, nil
 }

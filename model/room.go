@@ -1,19 +1,21 @@
 package model
 
 import (
+	"sync"
 	"time"
 
 	"github.com/ne241099/daifugo-server/internal/game"
 )
 
 type Room struct {
-	ID        int64
-	Name      string
-	OwnerID   int64
-	MemberIDs []int64
-	Game      *game.Game
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        int64      `json:"id"`
+	Name      string     `json:"name"`
+	OwnerID   int64      `json:"owner_id"`
+	MemberIDs []int64    `json:"member_ids"`
+	Game      *game.Game `json:"game"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	Mu        sync.Mutex `json:"-"`
 }
 
 func (r *Room) IsFull() bool {

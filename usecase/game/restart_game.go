@@ -23,6 +23,8 @@ func (uc *RestartGameInteractor) Execute(ctx context.Context, roomID int64) (*mo
 	if err != nil {
 		return nil, err
 	}
+	room.Mu.Lock()
+	defer room.Mu.Unlock()
 
 	if room.Game != nil {
 		return nil, fmt.Errorf("game already started")
@@ -33,8 +35,9 @@ func (uc *RestartGameInteractor) Execute(ctx context.Context, roomID int64) (*mo
 	}
 
 	room.RestartGame()
-
-	// 本来はここで roomRepo.Update(room) などを呼んで保存します
+	if err := uc.RoomRepository.SaveRoom(ctx, room); err != nil {
+		return nil, err
+	}
 
 	return room, nil
 }
