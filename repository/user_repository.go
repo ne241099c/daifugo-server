@@ -15,4 +15,6 @@ type UserRepository interface {
 	SaveUser(ctx context.Context, user *model.User) error
 	// DeleteUser は、ユーザを削除する
 	DeleteUser(ctx context.Context, id int64) error
+	// ListUsers は、ユーザ一覧を取得する
+	ListUsers(ctx context.Context) ([]*model.User, error)
 }

@@ -97,3 +97,16 @@ func (r *InmemUserRepository) DeleteUser(ctx context.Context, id int64) error {
 
 	return nil
 }
+
+func (r *InmemUserRepository) ListUsers(ctx context.Context) ([]*model.User, error) {
+	r.mtx.RLock()
+	defer r.mtx.RUnlock()
+
+	users := make([]*model.User, 0, len(r.data))
+	for _, user := range r.data {
+		u := user // ポインタのスコープをループ内に限定するためにコピー
+		users = append(users, &u)
+	}
+
+	return users, nil
+}

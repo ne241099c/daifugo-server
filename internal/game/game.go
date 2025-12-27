@@ -62,6 +62,8 @@ type Game struct {
 	Turn         int
 	IsRevolution bool
 	PassCount    int
+
+	IsFinished bool
 }
 
 func NewGame(memberIDs []int64) *Game {
@@ -154,7 +156,63 @@ func (g *Game) Play(userID int64, cards []*Card) error {
 		g.advanceTurn()
 	}
 
+	if len(player.Hand) == 0 {
+		g.handleWin(player)
+
+		// ゲーム終了判定
+		if g.IsFinished {
+			return nil // 終了
+		}
+
+		// あがった場合は次の人へ
+		g.advanceTurn()
+		return nil
+	}
+
+	// 8切りならターン継続、それ以外なら次へ
+	if is8giri {
+		g.clearTable()
+	} else {
+		g.advanceTurn()
+	}
+
 	return nil
+}
+
+func (g *Game) Reset() *Game {
+	// デッキの再生成とシャッフル
+	deck := NewDeck(2)
+	deck.Shuffle()
+
+	// カードを配る
+	hands := deck.Deal(len(g.Players))
+
+	// プレイヤー状態のリセット
+	for i, p := range g.Players {
+		p.Hand = hands[i]
+	}
+
+	// ゲーム状態の初期化
+	g.FinishedPlayers = []*Player{}
+	g.FieldCards = []*Card{}
+	g.LastHandType = HandTypeInvalid
+	g.LastHandStrength = 0
+	g.LastPlayerID = 0
+	g.IsRevolution = false
+	g.PassCount = 0
+	g.IsFinished = false
+
+	// ターンの決定
+	// 大富豪から開始
+	g.Turn = 0
+	for i, p := range g.Players {
+		if p.Rank == 1 {
+			g.Turn = i
+			break
+		}
+	}
+
+	return g
 }
 
 // Pass
@@ -206,6 +264,21 @@ func (g *Game) advanceTurn() {
 func (g *Game) handleWin(p *Player) {
 	g.FinishedPlayers = append(g.FinishedPlayers, p)
 	p.Rank = len(g.FinishedPlayers)
+
+	activeCount := g.getActivePlayerCount()
+
+	if activeCount == 1 {
+		g.IsFinished = true
+
+		// 残った1人を敗者として確定
+		for _, loser := range g.Players {
+			if len(loser.Hand) > 0 {
+				g.FinishedPlayers = append(g.FinishedPlayers, loser)
+				loser.Rank = len(g.FinishedPlayers) // 最下位
+				break
+			}
+		}
+	}
 }
 
 func (g *Game) getActivePlayerCount() int {

@@ -67,6 +67,7 @@ type ComplexityRoot struct {
 	Game struct {
 		FieldCards      func(childComplexity int) int
 		FinishedPlayers func(childComplexity int) int
+		IsFinished      func(childComplexity int) int
 		IsRevolution    func(childComplexity int) int
 		PassCount       func(childComplexity int) int
 		Players         func(childComplexity int) int
@@ -81,15 +82,16 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateRoom func(childComplexity int, name string) int
-		DeleteUser func(childComplexity int, id string) int
-		JoinRoom   func(childComplexity int, roomID string) int
-		LeaveRoom  func(childComplexity int, roomID string) int
-		Login      func(childComplexity int, email string, password string) int
-		Pass       func(childComplexity int, roomID string) int
-		PlayCard   func(childComplexity int, roomID string, cardIds []int32) int
-		SignUp     func(childComplexity int, in model.SignUpInput) int
-		StartGame  func(childComplexity int, roomID string) int
+		CreateRoom  func(childComplexity int, name string) int
+		DeleteUser  func(childComplexity int, id string) int
+		JoinRoom    func(childComplexity int, roomID string) int
+		LeaveRoom   func(childComplexity int, roomID string) int
+		Login       func(childComplexity int, email string, password string) int
+		Pass        func(childComplexity int, roomID string) int
+		PlayCard    func(childComplexity int, roomID string, cardIds []int32) int
+		RestartGame func(childComplexity int, roomID string) int
+		SignUp      func(childComplexity int, in model.SignUpInput) int
+		StartGame   func(childComplexity int, roomID string) int
 	}
 
 	Query struct {
@@ -98,6 +100,7 @@ type ComplexityRoot struct {
 		Room  func(childComplexity int, id string) int
 		Rooms func(childComplexity int) int
 		User  func(childComplexity int, id string) int
+		Users func(childComplexity int) int
 	}
 
 	Room struct {
@@ -144,6 +147,7 @@ type MutationResolver interface {
 	PlayCard(ctx context.Context, roomID string, cardIds []int32) (*model.Room, error)
 	Pass(ctx context.Context, roomID string) (*model.Room, error)
 	LeaveRoom(ctx context.Context, roomID string) (bool, error)
+	RestartGame(ctx context.Context, roomID string) (*model.Room, error)
 	DeleteUser(ctx context.Context, id string) (bool, error)
 	Login(ctx context.Context, email string, password string) (*model.AuthPayload, error)
 }
@@ -151,6 +155,7 @@ type QueryResolver interface {
 	Hello(ctx context.Context) (string, error)
 	Rooms(ctx context.Context) ([]*model.Room, error)
 	Room(ctx context.Context, id string) (*model.Room, error)
+	Users(ctx context.Context) ([]*model.User, error)
 	User(ctx context.Context, id string) (*model.User, error)
 	Me(ctx context.Context) (*model.User, error)
 }
@@ -222,6 +227,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Game.FinishedPlayers(childComplexity), true
+	case "Game.isFinished":
+		if e.complexity.Game.IsFinished == nil {
+			break
+		}
+
+		return e.complexity.Game.IsFinished(childComplexity), true
 	case "Game.isRevolution":
 		if e.complexity.Game.IsRevolution == nil {
 			break
@@ -349,6 +360,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.PlayCard(childComplexity, args["roomId"].(string), args["cardIds"].([]int32)), true
+	case "Mutation.restartGame":
+		if e.complexity.Mutation.RestartGame == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_restartGame_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RestartGame(childComplexity, args["roomID"].(string)), true
 	case "Mutation.signUp":
 		if e.complexity.Mutation.SignUp == nil {
 			break
@@ -412,6 +434,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.User(childComplexity, args["id"].(string)), true
+	case "Query.users":
+		if e.complexity.Query.Users == nil {
+			break
+		}
+
+		return e.complexity.Query.Users(childComplexity), true
 
 	case "Room.createdAt":
 		if e.complexity.Room.CreatedAt == nil {
@@ -708,6 +736,17 @@ func (ec *executionContext) field_Mutation_playCard_args(ctx context.Context, ra
 		return nil, err
 	}
 	args["cardIds"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_restartGame_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "roomID", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["roomID"] = arg0
 	return args, nil
 }
 
@@ -1172,6 +1211,35 @@ func (ec *executionContext) fieldContext_Game_passCount(_ context.Context, field
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Game_isFinished(ctx context.Context, field graphql.CollectedField, obj *game.Game) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Game_isFinished,
+		func(ctx context.Context) (any, error) {
+			return obj.IsFinished, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Game_isFinished(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Game",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -1712,6 +1780,67 @@ func (ec *executionContext) fieldContext_Mutation_leaveRoom(ctx context.Context,
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_restartGame(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_restartGame,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().RestartGame(ctx, fc.Args["roomID"].(string))
+		},
+		nil,
+		ec.marshalNRoom2ᚖgithubᚗcomᚋne241099ᚋdaifugoᚑserverᚋgraphᚋmodelᚐRoom,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_restartGame(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Room_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Room_name(ctx, field)
+			case "ownerId":
+				return ec.fieldContext_Room_ownerId(ctx, field)
+			case "memberIds":
+				return ec.fieldContext_Room_memberIds(ctx, field)
+			case "owner":
+				return ec.fieldContext_Room_owner(ctx, field)
+			case "members":
+				return ec.fieldContext_Room_members(ctx, field)
+			case "game":
+				return ec.fieldContext_Room_game(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Room_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Room_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Room", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_restartGame_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_deleteUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1935,6 +2064,47 @@ func (ec *executionContext) fieldContext_Query_room(ctx context.Context, field g
 	if fc.Args, err = ec.field_Query_room_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_users(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_users,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().Users(ctx)
+		},
+		nil,
+		ec.marshalNUser2ᚕᚖgithubᚗcomᚋne241099ᚋdaifugoᚑserverᚋgraphᚋmodelᚐUserᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_users(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_User_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_User_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -2375,6 +2545,8 @@ func (ec *executionContext) fieldContext_Room_game(_ context.Context, field grap
 				return ec.fieldContext_Game_finishedPlayers(ctx, field)
 			case "passCount":
 				return ec.fieldContext_Game_passCount(ctx, field)
+			case "isFinished":
+				return ec.fieldContext_Game_isFinished(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Game", field.Name)
 		},
@@ -4366,6 +4538,11 @@ func (ec *executionContext) _Game(ctx context.Context, sel ast.SelectionSet, obj
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "isFinished":
+			out.Values[i] = ec._Game_isFinished(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4573,6 +4750,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "restartGame":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_restartGame(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "deleteUser":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteUser(ctx, field)
@@ -4683,6 +4867,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_room(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "users":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_users(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
 				return res
 			}
 

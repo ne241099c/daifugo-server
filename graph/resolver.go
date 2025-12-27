@@ -13,17 +13,19 @@ import (
 // here.
 
 type Resolver struct {
-	Hub               *sse.Hub
-	SignUpUseCase     user.SignUpUseCase
-	LoginUseCase      user.LoginUseCase
-	GetUserUseCase    user.GetUserUseCase
-	DeleteUserUseCase user.DeleteUserUseCase
-	CreateRoomUseCase room.CreateRoomUseCase
-	JoinRoomUseCase   room.JoinRoomUseCase
-	LeaveRoomUseCase  room.LeaveRoomUseCase
-	ListRoomsUseCase  room.ListRoomsUseCase
-	GetRoomUseCase    room.GetRoomUseCase
-	StartGameUseCase  *game.StartGameInteractor
-	PlayCardUseCase   *game.PlayCardInteractor
-	PassUseCase       *game.PassInteractor
+	Hub                *sse.Hub
+	SignUpUseCase      user.SignUpUseCase
+	LoginUseCase       user.LoginUseCase
+	GetUserUseCase     user.GetUserUseCase
+	ListUsersUseCase   user.ListUsersUseCase
+	DeleteUserUseCase  user.DeleteUserUseCase
+	CreateRoomUseCase  room.CreateRoomUseCase
+	JoinRoomUseCase    room.JoinRoomUseCase
+	LeaveRoomUseCase   room.LeaveRoomUseCase
+	ListRoomsUseCase   room.ListRoomsUseCase
+	GetRoomUseCase     room.GetRoomUseCase
+	StartGameUseCase   *game.StartGameInteractor
+	RestartGameUseCase *game.RestartGameInteractor
+	PlayCardUseCase    *game.PlayCardInteractor
+	PassUseCase        *game.PassInteractor
 }

@@ -39,6 +39,9 @@ func (uc *PlayCardInteractor) Execute(ctx context.Context, roomID int64, userID 
 	if err := room.Game.Play(userID, targetCards); err != nil {
 		return nil, err
 	}
+	if err := uc.RoomRepository.SaveRoom(ctx, room); err != nil {
+		return nil, err
+	}
 
 	return room, nil
 }

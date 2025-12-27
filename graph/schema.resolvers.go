@@ -205,6 +205,21 @@ func (r *mutationResolver) LeaveRoom(ctx context.Context, roomID string) (bool, 
 	return true, nil
 }
 
+// RestartGame is the resolver for the restartGame field.
+func (r *mutationResolver) RestartGame(ctx context.Context, roomID string) (*model.Room, error) {
+	rid, err := strconv.ParseInt(roomID, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	room, err := r.RestartGameUseCase.Execute(ctx, rid)
+	if err != nil {
+		return nil, err
+	}
+
+	return mapRoomToGraphQL(room), nil
+}
+
 // DeleteUser is the resolver for the deleteUser field.
 func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (bool, error) {
 	userID, err := auth.GetUserID(ctx)
@@ -284,6 +299,27 @@ func (r *queryResolver) Room(ctx context.Context, id string) (*model.Room, error
 		return nil, err
 	}
 	return mapRoomToGraphQL(room), nil
+}
+
+// Users is the resolver for the users field.
+func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
+	users, err := r.ListUsersUseCase.Execute(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list users: %w", err)
+	}
+
+	var gqlUsers []*model.User
+	for _, u := range users {
+		gqlUsers = append(gqlUsers, &model.User{
+			ID:        strconv.FormatInt(u.ID, 10),
+			Name:      u.Name,
+			Email:     u.Email,
+			CreatedAt: u.CreatedAt,
+			UpdatedAt: u.UpdatedAt,
+		})
+	}
+
+	return gqlUsers, nil
 }
 
 // User is the resolver for the user field.

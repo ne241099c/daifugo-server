@@ -24,6 +24,10 @@ func (r *Room) StartGame() {
 	r.Game = game.NewGame(r.MemberIDs)
 }
 
+func (r *Room) RestartGame() {
+	r.Game = r.Game.Reset()
+}
+
 func NewRoom(name string, ownerID int64) *Room {
 	return &Room{
 		Name:      name,

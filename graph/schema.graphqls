@@ -25,6 +25,7 @@ type Query {
   hello: String!
   rooms: [Room!]!
   room(id: ID!): Room
+  users: [User!]!
   user(id: ID!): User
   me: User!
 }
@@ -49,6 +50,7 @@ type Game {
   players: [GamePlayer!]!
   finishedPlayers: [GamePlayer!]
   passCount: Int!
+  isFinished: Boolean!
 }
 
 input signUpInput {
@@ -71,6 +73,7 @@ type Mutation {
   playCard(roomId: ID!, cardIds: [Int!]!): Room!
   pass(roomId: ID!): Room!
   leaveRoom(roomID: ID!): Boolean!
+  restartGame(roomID: ID!): Room!
   deleteUser(id: ID!): Boolean!
   login(email: String!, password: String!): AuthPayload!
 }

@@ -43,6 +43,9 @@ func main() {
 		GetUserUseCase: &user.GetUserInteractor{
 			UserRepository: userRepo,
 		},
+		ListUsersUseCase: &user.ListUsersInteractor{
+			UserRepository: userRepo,
+		},
 		DeleteUserUseCase: &user.DeleteUserInteractor{
 			UserRepository: userRepo,
 		},
@@ -66,6 +69,9 @@ func main() {
 			RoomRepository: roomRepo,
 		},
 		StartGameUseCase: &game.StartGameInteractor{
+			RoomRepository: roomRepo,
+		},
+		RestartGameUseCase: &game.RestartGameInteractor{
 			RoomRepository: roomRepo,
 		},
 		PlayCardUseCase: &game.PlayCardInteractor{

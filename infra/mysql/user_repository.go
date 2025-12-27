@@ -102,3 +102,32 @@ func (r *MySQLUserRepository) DeleteUser(ctx context.Context, id int64) error {
 	}
 	return nil
 }
+
+func (r *MySQLUserRepository) ListUsers(ctx context.Context) ([]*model.User, error) {
+	{
+		query := `
+		SELECT id, name, email, password_hash, created_at, updated_at
+		FROM users
+	`
+		rows, err := r.db.QueryContext(ctx, query)
+		if err != nil {
+			return nil, fmt.Errorf("failed to query users: %w", err)
+		}
+		defer rows.Close()
+
+		var users []*model.User
+		for rows.Next() {
+			var u model.User
+			if err := rows.Scan(&u.ID, &u.Name, &u.Email, &u.HashedPassword, &u.CreatedAt, &u.UpdatedAt); err != nil {
+				return nil, fmt.Errorf("failed to scan user: %w", err)
+			}
+			users = append(users, &u)
+		}
+
+		if err := rows.Err(); err != nil {
+			return nil, fmt.Errorf("rows iteration error: %w", err)
+		}
+
+		return users, nil
+	}
+}
