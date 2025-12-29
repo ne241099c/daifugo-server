@@ -104,9 +104,9 @@ func (r *mutationResolver) JoinRoom(ctx context.Context, roomID string) (*model.
 		return nil, err
 	}
 
-	memberIdsStr := make([]string, len(joinedRoom.MemberIDs))
+	memberIDsStr := make([]string, len(joinedRoom.MemberIDs))
 	for i, mid := range joinedRoom.MemberIDs {
-		memberIdsStr[i] = strconv.FormatInt(mid, 10)
+		memberIDsStr[i] = strconv.FormatInt(mid, 10)
 	}
 
 	gqlRoom := mapRoomToGraphQL(joinedRoom)
@@ -142,8 +142,8 @@ func (r *mutationResolver) PlayCard(ctx context.Context, roomID string, cardIDs 
 		return nil, fmt.Errorf("unauthorized: %w", err)
 	}
 
-	targetCardIDs := make([]int, len(cardIds))
-	for i, id := range cardIds {
+	targetCardIDs := make([]int, len(cardIDs))
+	for i, id := range cardIDs {
 		targetCardIDs[i] = int(id)
 	}
 
@@ -272,16 +272,16 @@ func (r *queryResolver) Rooms(ctx context.Context) ([]*model.Room, error) {
 	gqlRooms := make([]*model.Room, len(rooms))
 	for i, room := range rooms {
 		// メンバーIDの変換
-		memberIdsStr := make([]string, len(room.MemberIDs))
+		memberIDsStr := make([]string, len(room.MemberIDs))
 		for j, mid := range room.MemberIDs {
-			memberIdsStr[j] = strconv.FormatInt(mid, 10)
+			memberIDsStr[j] = strconv.FormatInt(mid, 10)
 		}
 
 		gqlRooms[i] = &model.Room{
 			ID:        strconv.FormatInt(room.ID, 10),
 			Name:      room.Name,
 			OwnerID:   strconv.FormatInt(room.OwnerID, 10),
-			MemberIds: memberIdsStr,
+			MemberIDs: memberIDsStr,
 			CreatedAt: room.CreatedAt,
 			UpdatedAt: room.UpdatedAt,
 		}
@@ -392,8 +392,8 @@ func (r *roomResolver) Owner(ctx context.Context, obj *model.Room) (*model.User,
 func (r *roomResolver) Members(ctx context.Context, obj *model.Room) ([]*model.User, error) {
 	var gqlUsers []*model.User
 
-	// obj.MemberIdsを回してユーザー情報を取得
-	for _, idStr := range obj.MemberIds {
+	// obj.MemberIDsを回してユーザー情報を取得
+	for _, idStr := range obj.MemberIDs {
 		mid, _ := strconv.ParseInt(idStr, 10, 64)
 
 		u, err := r.GetUserUseCase.Execute(ctx, mid)
