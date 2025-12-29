@@ -133,7 +133,7 @@ func (r *mutationResolver) StartGame(ctx context.Context, roomID string) (*model
 }
 
 // PlayCard is the resolver for the playCard field.
-func (r *mutationResolver) PlayCard(ctx context.Context, roomID string, cardIds []int32) (*model.Room, error) {
+func (r *mutationResolver) PlayCard(ctx context.Context, roomID string, cardIDs []int32) (*model.Room, error) {
 	rid, _ := strconv.ParseInt(roomID, 10, 64)
 
 	// 実行ユーザーを取得

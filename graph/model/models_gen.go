@@ -22,8 +22,8 @@ type Query struct {
 type Room struct {
 	ID        string     `json:"id"`
 	Name      string     `json:"name"`
-	OwnerID   string     `json:"ownerId"`
-	MemberIds []string   `json:"memberIds"`
+	OwnerID   string     `json:"ownerID"`
+	MemberIDs []string   `json:"memberIDs"`
 	Owner     *User      `json:"owner"`
 	Members   []*User    `json:"members"`
 	Game      *game.Game `json:"game,omitempty"`
