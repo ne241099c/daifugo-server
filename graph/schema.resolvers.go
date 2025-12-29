@@ -18,37 +18,48 @@ import (
 
 // ID is the resolver for the id field.
 func (r *cardResolver) ID(ctx context.Context, obj *game.Card) (int32, error) {
-	panic(fmt.Errorf("not implemented: ID - id"))
+	return int32(obj.ID), nil
 }
 
 // Suit is the resolver for the suit field.
 func (r *cardResolver) Suit(ctx context.Context, obj *game.Card) (string, error) {
-	panic(fmt.Errorf("not implemented: Suit - suit"))
+	return obj.Suit.String(), nil
 }
 
 // Rank is the resolver for the rank field.
 func (r *cardResolver) Rank(ctx context.Context, obj *game.Card) (int32, error) {
-	panic(fmt.Errorf("not implemented: Rank - rank"))
+	return int32(obj.Rank), nil
 }
 
 // Turn is the resolver for the turn field.
 func (r *gameResolver) Turn(ctx context.Context, obj *game.Game) (int32, error) {
-	panic(fmt.Errorf("not implemented: Turn - turn"))
+	return int32(obj.Turn), nil
 }
 
 // PassCount is the resolver for the passCount field.
 func (r *gameResolver) PassCount(ctx context.Context, obj *game.Game) (int32, error) {
-	panic(fmt.Errorf("not implemented: PassCount - passCount"))
+	return int32(obj.PassCount), nil
 }
 
 // User is the resolver for the user field.
 func (r *gamePlayerResolver) User(ctx context.Context, obj *game.Player) (*model.User, error) {
-	panic(fmt.Errorf("not implemented: User - user"))
+	u, err := r.GetUserUseCase.Execute(ctx, obj.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.User{
+		ID:        strconv.FormatInt(u.ID, 10),
+		Name:      u.Name,
+		Email:     u.Email,
+		CreatedAt: u.CreatedAt,
+		UpdatedAt: u.UpdatedAt,
+	}, nil
 }
 
 // Rank is the resolver for the rank field.
 func (r *gamePlayerResolver) Rank(ctx context.Context, obj *game.Player) (int32, error) {
-	panic(fmt.Errorf("not implemented: Rank - rank"))
+	return int32(obj.Rank), nil
 }
 
 // SignUp is the resolver for the signUp field.
