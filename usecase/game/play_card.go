@@ -31,10 +31,32 @@ func (uc *PlayCardInteractor) Execute(ctx context.Context, roomID int64, userID 
 		return nil, fmt.Errorf("game not started")
 	}
 
-	// IDリストから判定用カード生成
+	// プレイヤーを特定
+	var targetPlayer *game.Player
+	for _, p := range room.Game.Players {
+		if p.UserID == userID {
+			targetPlayer = p
+			break
+		}
+	}
+	if targetPlayer == nil {
+		return nil, fmt.Errorf("player not found in this game")
+	}
+
+	// 手札から指定されたカードを取得
 	var targetCards []*game.Card
 	for _, cid := range cardIDs {
-		targetCards = append(targetCards, &game.Card{ID: cid})
+		found := false
+		for _, handCard := range targetPlayer.Hand {
+			if handCard.ID == cid {
+				targetCards = append(targetCards, handCard)
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf("card %d not found in player's hand", cid)
+		}
 	}
 
 	// ロジック実行

@@ -103,15 +103,39 @@ func (g *Game) Play(userID int64, cards []*Card) error {
 		return errors.New("持っていないカードが含まれています")
 	}
 
+	is11Back := false
+	for _, c := range g.FieldCards {
+		if c.Rank == RankJack {
+			is11Back = true
+			break
+		}
+	}
+
+	effectiveRev := g.IsRevolution
+	if is11Back {
+		effectiveRev = !effectiveRev
+	}
+
 	// 役の解析
-	hType, strength, err := AnalyzeHand(cards, g.IsRevolution)
+	hType, strength, err := AnalyzeHand(cards, effectiveRev)
 	if err != nil {
 		return err
 	}
 
+	fieldStrength := 0
+	fieldType := g.LastHandType
+	if len(g.FieldCards) > 0 {
+		// 場にあるカードを今のルールで再評価
+		ft, fStr, err := AnalyzeHand(g.FieldCards, effectiveRev)
+		if err == nil {
+			fieldStrength = fStr
+			fieldType = ft
+		}
+	}
+
 	// ルール判定
 	// 場が流れているならチェック不要
-	if err := ValidatePlay(g.FieldCards, g.LastHandType, g.LastHandStrength, cards, hType, strength); err != nil {
+	if err := ValidatePlay(g.FieldCards, fieldType, fieldStrength, cards, hType, strength); err != nil {
 		return err
 	}
 
