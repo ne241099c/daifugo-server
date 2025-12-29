@@ -11,8 +11,8 @@ type User {
 type Room {
   id: ID! # 部屋ID
   name: String! # 部屋名
-  ownerId: ID! # 部屋のオーナーID
-  memberIds: [ID!]! # 部屋のメンバーIDリスト
+  ownerID: ID! # 部屋のオーナーID
+  memberIDs: [ID!]! # 部屋のメンバーIDリスト
   owner: User! # 部屋のオーナー情報
   members: [User!]! # 部屋のメンバーリスト
   game: Game # 部屋内のゲーム情報
@@ -37,7 +37,7 @@ type Card {
 }
 
 type GamePlayer {
-  userId: ID!
+  userID: ID!
   user: User!
   hand: [Card!]!
   rank: Int!
@@ -70,7 +70,7 @@ type Mutation {
   createRoom(name: String!): Room!
   joinRoom(roomID: ID!): Room!
   startGame(roomID: ID!): Room!
-  playCard(roomID: ID!, cardIds: [Int!]!): Room!
+  playCard(roomID: ID!, cardIDs: [Int!]!): Room!
   pass(roomID: ID!): Room!
   leaveRoom(roomID: ID!): Boolean!
   restartGame(roomID: ID!): Room!
