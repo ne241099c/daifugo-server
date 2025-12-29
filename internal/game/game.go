@@ -354,8 +354,8 @@ func (g *Game) exchangeCards() {
 		copy(cardsFromDaihinmin, giveHigh)
 
 		// 手札から削除
-		daifugo.Hand = daifugo.Hand[2:]
-		daihinmin.Hand = daihinmin.Hand[:len(daihinmin.Hand)-2]
+		daifugo.Hand = removeCardsAtIndex(daifugo.Hand, 0, 2)
+		daihinmin.Hand = removeCardsAtIndex(daihinmin.Hand, len(daihinmin.Hand)-2, len(daihinmin.Hand))
 
 		// 手札に追加
 		daifugo.Hand = append(daifugo.Hand, cardsFromDaihinmin...)
@@ -374,8 +374,8 @@ func (g *Game) exchangeCards() {
 			cardFromFugo := giveLow[0]
 			cardFromHinmin := giveHigh[0]
 
-			fugo.Hand = fugo.Hand[1:]
-			hinmin.Hand = hinmin.Hand[:len(hinmin.Hand)-1]
+			fugo.Hand = removeCardsAtIndex(fugo.Hand, 0, 1)
+			hinmin.Hand = removeCardsAtIndex(hinmin.Hand, len(hinmin.Hand)-1, len(hinmin.Hand))
 
 			fugo.Hand = append(fugo.Hand, cardFromHinmin)
 			hinmin.Hand = append(hinmin.Hand, cardFromFugo)
@@ -386,4 +386,11 @@ func (g *Game) exchangeCards() {
 	for _, p := range g.Players {
 		sortHandForExchange(p.Hand)
 	}
+}
+
+func removeCardsAtIndex(cards []*Card, start, end int) []*Card {
+	result := make([]*Card, 0, len(cards)-(end-start))
+	result = append(result, cards[:start]...)
+	result = append(result, cards[end:]...)
+	return result
 }
