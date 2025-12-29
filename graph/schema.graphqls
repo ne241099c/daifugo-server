@@ -68,10 +68,10 @@ type AuthPayload {
 type Mutation {
   signUp(in: signUpInput!): User!
   createRoom(name: String!): Room!
-  joinRoom(roomId: ID!): Room!
-  startGame(roomId: ID!): Room!
-  playCard(roomId: ID!, cardIds: [Int!]!): Room!
-  pass(roomId: ID!): Room!
+  joinRoom(roomID: ID!): Room!
+  startGame(roomID: ID!): Room!
+  playCard(roomID: ID!, cardIds: [Int!]!): Room!
+  pass(roomID: ID!): Room!
   leaveRoom(roomID: ID!): Boolean!
   restartGame(roomID: ID!): Room!
   deleteUser(id: ID!): Boolean!

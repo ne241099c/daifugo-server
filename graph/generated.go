@@ -315,7 +315,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.JoinRoom(childComplexity, args["roomId"].(string)), true
+		return e.complexity.Mutation.JoinRoom(childComplexity, args["roomID"].(string)), true
 	case "Mutation.leaveRoom":
 		if e.complexity.Mutation.LeaveRoom == nil {
 			break
@@ -348,7 +348,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.Pass(childComplexity, args["roomId"].(string)), true
+		return e.complexity.Mutation.Pass(childComplexity, args["roomID"].(string)), true
 	case "Mutation.playCard":
 		if e.complexity.Mutation.PlayCard == nil {
 			break
@@ -359,7 +359,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.PlayCard(childComplexity, args["roomId"].(string), args["cardIds"].([]int32)), true
+		return e.complexity.Mutation.PlayCard(childComplexity, args["roomID"].(string), args["cardIds"].([]int32)), true
 	case "Mutation.restartGame":
 		if e.complexity.Mutation.RestartGame == nil {
 			break
@@ -392,7 +392,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.StartGame(childComplexity, args["roomId"].(string)), true
+		return e.complexity.Mutation.StartGame(childComplexity, args["roomID"].(string)), true
 
 	case "Query.hello":
 		if e.complexity.Query.Hello == nil {
@@ -677,11 +677,11 @@ func (ec *executionContext) field_Mutation_deleteUser_args(ctx context.Context, 
 func (ec *executionContext) field_Mutation_joinRoom_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "roomId", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "roomID", ec.unmarshalNID2string)
 	if err != nil {
 		return nil, err
 	}
-	args["roomId"] = arg0
+	args["roomID"] = arg0
 	return args, nil
 }
 
@@ -715,22 +715,22 @@ func (ec *executionContext) field_Mutation_login_args(ctx context.Context, rawAr
 func (ec *executionContext) field_Mutation_pass_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "roomId", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "roomID", ec.unmarshalNID2string)
 	if err != nil {
 		return nil, err
 	}
-	args["roomId"] = arg0
+	args["roomID"] = arg0
 	return args, nil
 }
 
 func (ec *executionContext) field_Mutation_playCard_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "roomId", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "roomID", ec.unmarshalNID2string)
 	if err != nil {
 		return nil, err
 	}
-	args["roomId"] = arg0
+	args["roomID"] = arg0
 	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "cardIds", ec.unmarshalNInt2ᚕint32ᚄ)
 	if err != nil {
 		return nil, err
@@ -764,11 +764,11 @@ func (ec *executionContext) field_Mutation_signUp_args(ctx context.Context, rawA
 func (ec *executionContext) field_Mutation_startGame_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "roomId", ec.unmarshalNID2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "roomID", ec.unmarshalNID2string)
 	if err != nil {
 		return nil, err
 	}
-	args["roomId"] = arg0
+	args["roomID"] = arg0
 	return args, nil
 }
 
@@ -1503,7 +1503,7 @@ func (ec *executionContext) _Mutation_joinRoom(ctx context.Context, field graphq
 		ec.fieldContext_Mutation_joinRoom,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().JoinRoom(ctx, fc.Args["roomId"].(string))
+			return ec.resolvers.Mutation().JoinRoom(ctx, fc.Args["roomID"].(string))
 		},
 		nil,
 		ec.marshalNRoom2ᚖgithubᚗcomᚋne241099ᚋdaifugoᚑserverᚋgraphᚋmodelᚐRoom,
@@ -1564,7 +1564,7 @@ func (ec *executionContext) _Mutation_startGame(ctx context.Context, field graph
 		ec.fieldContext_Mutation_startGame,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().StartGame(ctx, fc.Args["roomId"].(string))
+			return ec.resolvers.Mutation().StartGame(ctx, fc.Args["roomID"].(string))
 		},
 		nil,
 		ec.marshalNRoom2ᚖgithubᚗcomᚋne241099ᚋdaifugoᚑserverᚋgraphᚋmodelᚐRoom,
@@ -1625,7 +1625,7 @@ func (ec *executionContext) _Mutation_playCard(ctx context.Context, field graphq
 		ec.fieldContext_Mutation_playCard,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().PlayCard(ctx, fc.Args["roomId"].(string), fc.Args["cardIds"].([]int32))
+			return ec.resolvers.Mutation().PlayCard(ctx, fc.Args["roomID"].(string), fc.Args["cardIds"].([]int32))
 		},
 		nil,
 		ec.marshalNRoom2ᚖgithubᚗcomᚋne241099ᚋdaifugoᚑserverᚋgraphᚋmodelᚐRoom,
@@ -1686,7 +1686,7 @@ func (ec *executionContext) _Mutation_pass(ctx context.Context, field graphql.Co
 		ec.fieldContext_Mutation_pass,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().Pass(ctx, fc.Args["roomId"].(string))
+			return ec.resolvers.Mutation().Pass(ctx, fc.Args["roomID"].(string))
 		},
 		nil,
 		ec.marshalNRoom2ᚖgithubᚗcomᚋne241099ᚋdaifugoᚑserverᚋgraphᚋmodelᚐRoom,

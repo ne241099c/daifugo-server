@@ -199,7 +199,7 @@ func (r *mutationResolver) LeaveRoom(ctx context.Context, roomID string) (bool, 
 	}
 
 	r.Hub.Publish("room_updated", map[string]any{
-		"roomId": roomID,
+		"roomID": roomID,
 		"event":  "member_left",
 	}, nil)
 	return true, nil
