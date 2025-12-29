@@ -48,10 +48,10 @@ func (p *Player) RemoveCards(cards []*Card) {
 
 // Game 構造体
 type Game struct {
-	Players         []*Player
-	FinishedPlayers []*Player
-
-	FieldCards []*Card
+	Players          []*Player
+	FinishedPlayers  []*Player
+	MiyakoOchiPlayer *Player
+	FieldCards       []*Card
 
 	// 直前の役情報
 	LastHandType     HandType
@@ -185,6 +185,12 @@ func (g *Game) Reset() *Game {
 	g.IsRevolution = false
 	g.PassCount = 0
 	g.IsFinished = false
+	g.MiyakoOchiPlayer = nil
+
+	// カード交換
+	if g.Players[0].Rank > 0 {
+		g.exchangeCards()
+	}
 
 	// ターンの決定
 	// 大富豪から開始
@@ -245,23 +251,65 @@ func (g *Game) advanceTurn() {
 	}
 }
 
-func (g *Game) handleWin(p *Player) {
-	g.FinishedPlayers = append(g.FinishedPlayers, p)
-	p.Rank = len(g.FinishedPlayers)
+func (g *Game) handleWin(winner *Player) {
+	// 順位リストに追加
+	g.FinishedPlayers = append(g.FinishedPlayers, winner)
 
-	activeCount := g.getActivePlayerCount()
+	// 順位付け
+	winner.Rank = len(g.FinishedPlayers)
 
-	if activeCount == 1 {
-		g.IsFinished = true
-
-		// 残った1人を敗者として確定
-		for _, loser := range g.Players {
-			if len(loser.Hand) > 0 {
-				g.FinishedPlayers = append(g.FinishedPlayers, loser)
-				loser.Rank = len(g.FinishedPlayers) // 最下位
+	// 都落ち判定
+	if len(g.FinishedPlayers) == 1 && winner.Rank != 1 {
+		for _, p := range g.Players {
+			if p.Rank == 1 && len(p.Hand) > 0 {
+				// 都落ち発生！
+				g.triggerMiyakoOchi(p)
 				break
 			}
 		}
+	}
+
+	// ゲーム終了判定
+	if g.getActivePlayerCount() == 1 {
+		g.finishGame()
+	}
+}
+
+func (g *Game) triggerMiyakoOchi(loser *Player) {
+	// 手札を没収
+	loser.Hand = []*Card{}
+
+	// 一時退避
+	g.MiyakoOchiPlayer = loser
+	// ※ ここでクライアントに都落ち発生を通知するイベントを追加
+}
+
+func (g *Game) finishGame() {
+	g.IsFinished = true
+
+	// 残っているプレイヤーを探す
+	var lastPlayer *Player
+	for _, p := range g.Players {
+		if len(p.Hand) > 0 {
+			lastPlayer = p
+			break
+		}
+	}
+
+	// 残っていた人を追加
+	if lastPlayer != nil {
+		g.FinishedPlayers = append(g.FinishedPlayers, lastPlayer)
+	}
+
+	// 都落ちした人がいれば、リストの最後に追加
+	if g.MiyakoOchiPlayer != nil {
+		g.FinishedPlayers = append(g.FinishedPlayers, g.MiyakoOchiPlayer)
+		g.MiyakoOchiPlayer = nil // リセット
+	}
+
+	// 次のゲームのために Rank を確定させる
+	for i, p := range g.FinishedPlayers {
+		p.Rank = i + 1 // 1位, 2位...
 	}
 }
 
@@ -273,4 +321,69 @@ func (g *Game) getActivePlayerCount() int {
 		}
 	}
 	return c
+}
+
+func (g *Game) exchangeCards() {
+	// プレイヤーをランク順に取得するためのマップ
+	rankMap := make(map[int]*Player)
+	for _, p := range g.Players {
+		rankMap[p.Rank] = p
+		sortHandForExchange(p.Hand) // 手札を強さ順にソートしておく
+	}
+
+	playerCount := len(g.Players)
+	if playerCount < 3 {
+		return // 2人以下の場合は交換なし
+	}
+
+	// 大富豪<->大貧民
+	daifugo := rankMap[1]
+	daihinmin := rankMap[playerCount]
+
+	if daifugo != nil && daihinmin != nil {
+		// 大富豪
+		giveLow := daifugo.Hand[:2]
+		// 大貧民
+		giveHigh := daihinmin.Hand[len(daihinmin.Hand)-2:]
+
+		// 交換実行
+		cardsFromDaifugo := make([]*Card, 2)
+		copy(cardsFromDaifugo, giveLow)
+
+		cardsFromDaihinmin := make([]*Card, 2)
+		copy(cardsFromDaihinmin, giveHigh)
+
+		// 手札から削除
+		daifugo.Hand = daifugo.Hand[2:]
+		daihinmin.Hand = daihinmin.Hand[:len(daihinmin.Hand)-2]
+
+		// 手札に追加
+		daifugo.Hand = append(daifugo.Hand, cardsFromDaihinmin...)
+		daihinmin.Hand = append(daihinmin.Hand, cardsFromDaifugo...)
+	}
+
+	// 富豪<->貧民
+	if playerCount >= 4 {
+		fugo := rankMap[2]
+		hinmin := rankMap[playerCount-1]
+
+		if fugo != nil && hinmin != nil {
+			giveLow := fugo.Hand[:1]
+			giveHigh := hinmin.Hand[len(hinmin.Hand)-1:]
+
+			cardFromFugo := giveLow[0]
+			cardFromHinmin := giveHigh[0]
+
+			fugo.Hand = fugo.Hand[1:]
+			hinmin.Hand = hinmin.Hand[:len(hinmin.Hand)-1]
+
+			fugo.Hand = append(fugo.Hand, cardFromHinmin)
+			hinmin.Hand = append(hinmin.Hand, cardFromFugo)
+		}
+	}
+
+	// 交換後の手札を再度ソート
+	for _, p := range g.Players {
+		sortHandForExchange(p.Hand)
+	}
 }
