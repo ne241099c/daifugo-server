@@ -2,6 +2,7 @@ package inmem
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"sync"
 
@@ -42,8 +43,10 @@ func NewInmemRoomRepository() *InmemRoomRepository {
 }
 
 func (r *InmemRoomRepository) SaveRoom(ctx context.Context, room *model.Room) error {
+	fmt.Printf("DEBUG: InmemRoomRepository SaveRoom locking...\n")
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
+	fmt.Printf("DEBUG: InmemRoomRepository SaveRoom locked\n")
 
 	if room.ID == 0 {
 		room.ID = r.next
@@ -73,8 +76,10 @@ func (r *InmemRoomRepository) ListRooms(ctx context.Context) ([]*model.Room, err
 }
 
 func (r *InmemRoomRepository) GetRoomByID(ctx context.Context, id int64) (*model.Room, error) {
+	fmt.Printf("DEBUG: InmemRoomRepository GetRoomByID locking... id=%d\n", id)
 	r.mtx.RLock()
 	defer r.mtx.RUnlock()
+	fmt.Printf("DEBUG: InmemRoomRepository GetRoomByID locked id=%d\n", id)
 
 	room, ok := r.data[id]
 	if !ok {
