@@ -59,6 +59,8 @@ func (r *MySQLUserRepository) update(ctx context.Context, u *model.User) error {
 
 // GetUser はIDでユーザーを取得する
 func (r *MySQLUserRepository) GetUser(ctx context.Context, id int64) (*model.User, error) {
+	fmt.Printf("デバッグ: MySQL GetUser id=%d 開始\n", id)
+
 	query := `
 		SELECT id, name, email, password_hash, created_at, updated_at
 		FROM users WHERE id = ?
@@ -67,11 +69,15 @@ func (r *MySQLUserRepository) GetUser(ctx context.Context, id int64) (*model.Use
 
 	var u model.User
 	if err := row.Scan(&u.ID, &u.Name, &u.Email, &u.HashedPassword, &u.CreatedAt, &u.UpdatedAt); err != nil {
+		fmt.Printf("DEBUG: MySQL GetUser id=%d が失敗しました: %v\n", id, err)
+
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, repository.ErrEntityNotFound
 		}
 		return nil, fmt.Errorf("failed to scan user: %w", err)
 	}
+	fmt.Printf("DEBUG: MySQL GetUser id=%d 成功\n", id)
+
 	return &u, nil
 }
 
