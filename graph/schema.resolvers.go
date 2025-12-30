@@ -38,39 +38,48 @@ func (r *gameResolver) Turn(ctx context.Context, obj *game.Game) (int32, error) 
 
 // Players is the resolver for the players field.
 func (r *gameResolver) Players(ctx context.Context, obj *game.Game) ([]*game.Player, error) {
+	if obj == nil || obj.Players == nil {
+		return []*game.Player{}, nil
+	}
+
 	currentUserID, err := auth.GetUserID(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unauthorized: %w", err)
 	}
 
-	// 自分がプレイヤーに含まれているか確認
+	// 1. 自分がプレイヤーに含まれているか確認（観戦者判定）
 	isSpectator := true
 	for _, p := range obj.Players {
-		if p.UserID == currentUserID {
+		if p != nil && p.UserID == currentUserID {
 			isSpectator = false
 			break
 		}
 	}
 
-	// プレイヤーごとの手札をフィルタリングして返す
-	result := make([]*game.Player, len(obj.Players))
+	// 2. プレイヤーごとの手札をフィルタリングして返す
+	result := make([]*game.Player, 0, len(obj.Players))
 
-	for i, p := range obj.Players {
+	for _, p := range obj.Players {
+		// nilチェック (パニック防止)
+		if p == nil {
+			continue
+		}
+
 		// 構造体のコピーを作成
 		pCopy := *p
 
 		// 表示条件:
-		// ゲームが終了している
-		// 自分が観戦者である
-		// 自分の手札である
+		// A. ゲームが終了している
+		// B. 自分が観戦者である
+		// C. 自分の手札である
 		isVisible := obj.IsFinished || isSpectator || (p.UserID == currentUserID)
 
 		if !isVisible {
-			// 条件を満たさない場合、手札を空にする
+			// 条件を満たさない場合、手札を隠す
 			pCopy.Hand = []*game.Card{}
 		}
 
-		result[i] = &pCopy
+		result = append(result, &pCopy)
 	}
 
 	return result, nil

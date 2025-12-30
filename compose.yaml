@@ -27,8 +27,12 @@ services:
       - "3306:3306"
     volumes:
       - ./docker/mysql/init:/docker-entrypoint-initdb.d
+      - mysql-data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u$$DB_USER", "-p$$DB_PASSWORD"]
       interval: 5s
       timeout: 5s
       retries: 10
+
+volumes:
+  mysql-data:
