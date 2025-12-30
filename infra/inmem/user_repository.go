@@ -56,9 +56,6 @@ func (r *InmemUserRepository) SaveUser(ctx context.Context, user *model.User) er
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
-
 	if user.ID == 0 {
 		// 新規作成
 		r.number++
