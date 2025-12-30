@@ -150,8 +150,10 @@ func (r *mutationResolver) CreateRoom(ctx context.Context, name string) (*model.
 // JoinRoom is the resolver for the joinRoom field.
 // 部屋に参加する
 func (r *mutationResolver) JoinRoom(ctx context.Context, roomID string) (*model.Room, error) {
+	fmt.Printf("DEBUG: Mutation JoinRoom start roomID=%s\n", roomID)
 	rID, err := strconv.ParseInt(roomID, 10, 64)
 	if err != nil {
+		fmt.Printf("DEBUG: Mutation JoinRoom parse int failed: %v\n", err)
 		return nil, errors.Join(err)
 	}
 
@@ -172,6 +174,7 @@ func (r *mutationResolver) JoinRoom(ctx context.Context, roomID string) (*model.
 	gqlRoom := mapRoomToGraphQL(joinedRoom)
 
 	r.Hub.Publish("room_updated", gqlRoom, nil)
+	fmt.Printf("DEBUG: Mutation JoinRoom success roomID=%s\n", roomID)
 	return gqlRoom, nil
 }
 
@@ -352,12 +355,15 @@ func (r *queryResolver) Rooms(ctx context.Context) ([]*model.Room, error) {
 
 // Room is the resolver for the room field.
 func (r *queryResolver) Room(ctx context.Context, id string) (*model.Room, error) {
+	fmt.Printf("DEBUG: Query Room start id=%s\n", id)
 	rid, _ := strconv.ParseInt(id, 10, 64)
 
 	room, err := r.GetRoomUseCase.Execute(ctx, rid)
 	if err != nil {
+		fmt.Printf("DEBUG: Query Room failed: %v\n", err)
 		return nil, err
 	}
+	fmt.Printf("DEBUG: Query Room success id=%s\n", id)
 	return mapRoomToGraphQL(room), nil
 }
 
