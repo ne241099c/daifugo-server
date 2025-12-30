@@ -418,3 +418,49 @@ func removeCardsAtIndex(cards []*Card, start, end int) []*Card {
 	result = append(result, cards[end:]...)
 	return result
 }
+
+func (g *Game) RemovePlayer(userID int64) {
+	// 既に終了したプレイヤーなら何もしない
+	for _, p := range g.FinishedPlayers {
+		if p.UserID == userID {
+			return
+		}
+	}
+
+	var target *Player
+	var targetIndex int
+	for i, p := range g.Players {
+		if p.UserID == userID {
+			target = p
+			targetIndex = i
+			break
+		}
+	}
+
+	if target == nil {
+		return
+	}
+
+	// 手札を破棄
+	target.Hand = []*Card{}
+
+	// 順位を確定
+	g.FinishedPlayers = append(g.FinishedPlayers, target)
+
+	// Playersリストから削除
+	g.Players = append(g.Players[:targetIndex], g.Players[targetIndex+1:]...)
+
+	// もしターンプレイヤーが抜けた場合、次の人へ
+	if g.Turn == targetIndex {
+		if g.Turn >= len(g.Players) {
+			g.Turn = 0
+		}
+	} else if g.Turn > targetIndex {
+		g.Turn--
+	}
+
+	// 残り1人になったらゲーム終了
+	if g.getActivePlayerCount() <= 1 {
+		g.finishGame()
+	}
+}

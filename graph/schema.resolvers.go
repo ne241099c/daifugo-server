@@ -36,6 +36,46 @@ func (r *gameResolver) Turn(ctx context.Context, obj *game.Game) (int32, error) 
 	return int32(obj.Turn), nil
 }
 
+// Players is the resolver for the players field.
+func (r *gameResolver) Players(ctx context.Context, obj *game.Game) ([]*game.Player, error) {
+	currentUserID, err := auth.GetUserID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("unauthorized: %w", err)
+	}
+
+	// 自分がプレイヤーに含まれているか確認
+	isSpectator := true
+	for _, p := range obj.Players {
+		if p.UserID == currentUserID {
+			isSpectator = false
+			break
+		}
+	}
+
+	// プレイヤーごとの手札をフィルタリングして返す
+	result := make([]*game.Player, len(obj.Players))
+
+	for i, p := range obj.Players {
+		// 構造体のコピーを作成
+		pCopy := *p
+
+		// 表示条件:
+		// ゲームが終了している
+		// 自分が観戦者である
+		// 自分の手札である
+		isVisible := obj.IsFinished || isSpectator || (p.UserID == currentUserID)
+
+		if !isVisible {
+			// 条件を満たさない場合、手札を空にする
+			pCopy.Hand = []*game.Card{}
+		}
+
+		result[i] = &pCopy
+	}
+
+	return result, nil
+}
+
 // PassCount is the resolver for the passCount field.
 func (r *gameResolver) PassCount(ctx context.Context, obj *game.Game) (int32, error) {
 	return int32(obj.PassCount), nil
@@ -232,13 +272,13 @@ func (r *mutationResolver) RestartGame(ctx context.Context, roomID string) (*mod
 }
 
 // DeleteUser is the resolver for the deleteUser field.
-func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (bool, error) {
+func (r *mutationResolver) DeleteUser(ctx context.Context) (bool, error) {
 	userID, err := auth.GetUserID(ctx)
 	if err != nil {
 		return false, fmt.Errorf("unauthorized: %w", err)
 	}
 
-	// UseCase実行
+	// UseCaseを実行
 	if err := r.DeleteUserUseCase.Execute(ctx, userID); err != nil {
 		return false, err
 	}

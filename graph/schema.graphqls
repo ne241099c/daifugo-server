@@ -74,7 +74,7 @@ type Mutation {
   pass(roomID: ID!): Room!
   leaveRoom(roomID: ID!): Boolean!
   restartGame(roomID: ID!): Room!
-  deleteUser(id: ID!): Boolean!
+  deleteUser: Boolean!
   login(email: String!, password: String!): AuthPayload!
 }
 

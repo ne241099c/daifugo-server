@@ -43,6 +43,10 @@ func (uc *LeaveRoomInteractor) Execute(ctx context.Context, roomID int64, userID
 	}
 	room.MemberIDs = newMembers
 
+	if room.Game != nil {
+		room.Game.RemovePlayer(userID)
+	}
+
 	// 部屋が空になった場合は削除
 	if len(room.MemberIDs) == 0 {
 		if err := uc.RoomRepository.DeleteRoom(ctx, roomID); err != nil {

@@ -83,7 +83,7 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		CreateRoom  func(childComplexity int, name string) int
-		DeleteUser  func(childComplexity int, id string) int
+		DeleteUser  func(childComplexity int) int
 		JoinRoom    func(childComplexity int, roomID string) int
 		LeaveRoom   func(childComplexity int, roomID string) int
 		Login       func(childComplexity int, email string, password string) int
@@ -132,6 +132,8 @@ type CardResolver interface {
 type GameResolver interface {
 	Turn(ctx context.Context, obj *game.Game) (int32, error)
 
+	Players(ctx context.Context, obj *game.Game) ([]*game.Player, error)
+
 	PassCount(ctx context.Context, obj *game.Game) (int32, error)
 }
 type GamePlayerResolver interface {
@@ -148,7 +150,7 @@ type MutationResolver interface {
 	Pass(ctx context.Context, roomID string) (*model.Room, error)
 	LeaveRoom(ctx context.Context, roomID string) (bool, error)
 	RestartGame(ctx context.Context, roomID string) (*model.Room, error)
-	DeleteUser(ctx context.Context, id string) (bool, error)
+	DeleteUser(ctx context.Context) (bool, error)
 	Login(ctx context.Context, email string, password string) (*model.AuthPayload, error)
 }
 type QueryResolver interface {
@@ -299,12 +301,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			break
 		}
 
-		args, err := ec.field_Mutation_deleteUser_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.DeleteUser(childComplexity, args["id"].(string)), true
+		return e.complexity.Mutation.DeleteUser(childComplexity), true
 	case "Mutation.joinRoom":
 		if e.complexity.Mutation.JoinRoom == nil {
 			break
@@ -660,17 +657,6 @@ func (ec *executionContext) field_Mutation_createRoom_args(ctx context.Context, 
 		return nil, err
 	}
 	args["name"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_deleteUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
-	if err != nil {
-		return nil, err
-	}
-	args["id"] = arg0
 	return args, nil
 }
 
@@ -1116,7 +1102,7 @@ func (ec *executionContext) _Game_players(ctx context.Context, field graphql.Col
 		field,
 		ec.fieldContext_Game_players,
 		func(ctx context.Context) (any, error) {
-			return obj.Players, nil
+			return ec.resolvers.Game().Players(ctx, obj)
 		},
 		nil,
 		ec.marshalNGamePlayer2ᚕᚖgithubᚗcomᚋne241099ᚋdaifugoᚑserverᚋinternalᚋgameᚐPlayerᚄ,
@@ -1129,8 +1115,8 @@ func (ec *executionContext) fieldContext_Game_players(_ context.Context, field g
 	fc = &graphql.FieldContext{
 		Object:     "Game",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "userID":
@@ -1848,8 +1834,7 @@ func (ec *executionContext) _Mutation_deleteUser(ctx context.Context, field grap
 		field,
 		ec.fieldContext_Mutation_deleteUser,
 		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().DeleteUser(ctx, fc.Args["id"].(string))
+			return ec.resolvers.Mutation().DeleteUser(ctx)
 		},
 		nil,
 		ec.marshalNBoolean2bool,
@@ -1858,7 +1843,7 @@ func (ec *executionContext) _Mutation_deleteUser(ctx context.Context, field grap
 	)
 }
 
-func (ec *executionContext) fieldContext_Mutation_deleteUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_deleteUser(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -1867,17 +1852,6 @@ func (ec *executionContext) fieldContext_Mutation_deleteUser(ctx context.Context
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Boolean does not have child fields")
 		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_deleteUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
 	}
 	return fc, nil
 }
@@ -4496,10 +4470,41 @@ func (ec *executionContext) _Game(ctx context.Context, sel ast.SelectionSet, obj
 				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "players":
-			out.Values[i] = ec._Game_players(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Game_players(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
 			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "finishedPlayers":
 			out.Values[i] = ec._Game_finishedPlayers(ctx, field, obj)
 		case "passCount":

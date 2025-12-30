@@ -171,6 +171,9 @@ models:
 
   Game:
     model: github.com/ne241099/daifugo-server/internal/game.Game
+    fields:
+      players:
+        resolver: true
   GamePlayer:
     model: github.com/ne241099/daifugo-server/internal/game.Player
   Card:
