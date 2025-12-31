@@ -46,7 +46,6 @@ func (m *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 
 		user, err := m.userRepo.GetUser(r.Context(), uid)
 		if err != nil {
-			// ユーザーが存在しない
 			http.Error(w, "User not found", http.StatusUnauthorized)
 			return
 		}

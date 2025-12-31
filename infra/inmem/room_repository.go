@@ -49,6 +49,8 @@ func (r *InmemRoomRepository) SaveRoom(ctx context.Context, room *model.Room) er
 		r.next++
 	}
 
+	room.UpdatedAt = time.Now()
+
 	r.data[room.ID] = room
 	return nil
 }
@@ -119,6 +121,5 @@ func (r *InmemRoomRepository) jsonDeepCopy(src *model.Room) *model.Room {
 	if err := json.Unmarshal(b, &dst); err != nil {
 		return nil
 	}
-	// Mutexはコピーされないので安全
 	return &dst
 }
