@@ -22,8 +22,7 @@ func (r *InmemRoomRepository) UpdateRoom(ctx context.Context, room *model.Room) 
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	// マップの値を更新
-	r.data[room.ID] = r.deepCopy(room)
+	r.data[room.ID] = room
 	return nil
 }
 
@@ -46,15 +45,13 @@ func (r *InmemRoomRepository) SaveRoom(ctx context.Context, room *model.Room) er
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
+	// 新規作成の場合はIDを割り当て
 	if room.ID == 0 {
 		room.ID = r.next
 		r.next++
 	}
 
-	saved := r.deepCopy(room)
-	r.data[room.ID] = saved
-
-	room.ID = saved.ID
+	r.data[room.ID] = room
 	return nil
 }
 
@@ -62,10 +59,9 @@ func (r *InmemRoomRepository) ListRooms(ctx context.Context) ([]*model.Room, err
 	r.mtx.RLock()
 	defer r.mtx.RUnlock()
 
-	// マップからリストに詰め替え
 	rooms := make([]*model.Room, 0, len(r.data))
 	for _, room := range r.data {
-		rooms = append(rooms, r.deepCopy(room))
+		rooms = append(rooms, r.safeCopy(room))
 	}
 
 	sort.Slice(rooms, func(i, j int) bool {
@@ -83,7 +79,14 @@ func (r *InmemRoomRepository) GetRoomByID(ctx context.Context, id int64) (*model
 	if !ok {
 		return nil, repository.ErrEntityNotFound
 	}
-	return r.deepCopy(room), nil
+	return room, nil
+}
+
+func (r *InmemRoomRepository) safeCopy(src *model.Room) *model.Room {
+	src.Mu.Lock()
+	defer src.Mu.Unlock()
+
+	return r.deepCopy(src)
 }
 
 func (r *InmemRoomRepository) deepCopy(src *model.Room) *model.Room {
