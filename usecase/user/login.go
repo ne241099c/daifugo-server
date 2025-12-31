@@ -38,8 +38,15 @@ func (uc *LoginInteractor) Execute(ctx context.Context, email, password string) 
 		return "", nil, errors.New("invalid email or password")
 	}
 
+	newVersion, err := uc.UserRepository.IncrementTokenVersion(ctx, u.ID)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to increment token version: %w", err)
+	}
+
+	u.TokenVersion = newVersion
+
 	// トークンの生成
-	token, err := uc.Authenticator.CreateToken(ctx, u.ID, u.TokenVersion)
+	token, err := uc.Authenticator.CreateToken(ctx, u.ID, newVersion)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to create token: %w", err)
 	}

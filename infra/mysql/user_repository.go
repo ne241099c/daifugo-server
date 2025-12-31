@@ -59,17 +59,14 @@ func (r *MySQLUserRepository) update(ctx context.Context, u *model.User) error {
 
 // GetUser はIDでユーザーを取得する
 func (r *MySQLUserRepository) GetUser(ctx context.Context, id int64) (*model.User, error) {
-	fmt.Printf("デバッグ: MySQL GetUser id=%d 開始\n", id)
-
 	query := `
-		SELECT id, name, email, password_hash, created_at, updated_at
+		SELECT id, name, email, password_hash, token_version, created_at, updated_at
 		FROM users WHERE id = ?
 	`
 	row := r.db.QueryRowContext(ctx, query, id)
 
 	var u model.User
-	if err := row.Scan(&u.ID, &u.Name, &u.Email, &u.HashedPassword, &u.CreatedAt, &u.UpdatedAt); err != nil {
-
+	if err := row.Scan(&u.ID, &u.Name, &u.Email, &u.HashedPassword, &u.TokenVersion, &u.CreatedAt, &u.UpdatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, repository.ErrEntityNotFound
 		}
@@ -82,13 +79,13 @@ func (r *MySQLUserRepository) GetUser(ctx context.Context, id int64) (*model.Use
 // GetUserByEmail はEmailでユーザーを取得する
 func (r *MySQLUserRepository) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
 	query := `
-		SELECT id, name, email, password_hash, created_at, updated_at
+		SELECT id, name, email, password_hash, token_version, created_at, updated_at
 		FROM users WHERE email = ?
 	`
 	row := r.db.QueryRowContext(ctx, query, email)
 
 	var u model.User
-	if err := row.Scan(&u.ID, &u.Name, &u.Email, &u.HashedPassword, &u.CreatedAt, &u.UpdatedAt); err != nil {
+	if err := row.Scan(&u.ID, &u.Name, &u.Email, &u.HashedPassword, &u.TokenVersion, &u.CreatedAt, &u.UpdatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, repository.ErrEntityNotFound
 		}
@@ -108,32 +105,31 @@ func (r *MySQLUserRepository) DeleteUser(ctx context.Context, id int64) error {
 }
 
 func (r *MySQLUserRepository) ListUsers(ctx context.Context) ([]*model.User, error) {
-	{
-		query := `
-		SELECT id, name, email, password_hash, created_at, updated_at
-		FROM users
-	`
-		rows, err := r.db.QueryContext(ctx, query)
-		if err != nil {
-			return nil, fmt.Errorf("failed to query users: %w", err)
-		}
-		defer rows.Close()
-
-		var users []*model.User
-		for rows.Next() {
-			var u model.User
-			if err := rows.Scan(&u.ID, &u.Name, &u.Email, &u.HashedPassword, &u.CreatedAt, &u.UpdatedAt); err != nil {
-				return nil, fmt.Errorf("failed to scan user: %w", err)
-			}
-			users = append(users, &u)
-		}
-
-		if err := rows.Err(); err != nil {
-			return nil, fmt.Errorf("rows iteration error: %w", err)
-		}
-
-		return users, nil
+	query := `
+        SELECT id, name, email, password_hash, token_version, created_at, updated_at
+        FROM users
+    `
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query users: %w", err)
 	}
+	defer rows.Close()
+
+	var users []*model.User
+	for rows.Next() {
+		var u model.User
+		// 修正: Scanにも TokenVersion を追加
+		if err := rows.Scan(&u.ID, &u.Name, &u.Email, &u.HashedPassword, &u.TokenVersion, &u.CreatedAt, &u.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("failed to scan user: %w", err)
+		}
+		users = append(users, &u)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows iteration error: %w", err)
+	}
+
+	return users, nil
 }
 
 func (r *MySQLUserRepository) IncrementTokenVersion(ctx context.Context, userID int64) (int, error) {
