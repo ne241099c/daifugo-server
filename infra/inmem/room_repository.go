@@ -2,10 +2,10 @@ package inmem
 
 import (
 	"context"
+	"encoding/json"
 	"sort"
 	"sync"
 
-	"github.com/ne241099/daifugo-server/internal/game"
 	"github.com/ne241099/daifugo-server/model"
 	"github.com/ne241099/daifugo-server/repository"
 )
@@ -93,82 +93,17 @@ func (r *InmemRoomRepository) deepCopy(src *model.Room) *model.Room {
 	if src == nil {
 		return nil
 	}
-	dst := &model.Room{
-		ID:        src.ID,
-		Name:      src.Name,
-		OwnerID:   src.OwnerID,
-		CreatedAt: src.CreatedAt,
-		UpdatedAt: src.UpdatedAt,
+
+	// JSONに変換
+	b, err := json.Marshal(src)
+	if err != nil {
+		return nil // 本来はエラーハンドリングすべき
 	}
 
-	// MemberIDsを新しく作り直してコピー
-	if src.MemberIDs != nil {
-		dst.MemberIDs = make([]int64, len(src.MemberIDs))
-		copy(dst.MemberIDs, src.MemberIDs)
-	}
-
-	if src.PrevRanks != nil {
-		dst.PrevRanks = make(map[int64]int)
-		for k, v := range src.PrevRanks {
-			dst.PrevRanks[k] = v
-		}
-	} else {
-		dst.PrevRanks = make(map[int64]int)
-	}
-
-	// Game構造体もポインタを含んでいるため再帰的にコピー
-	if src.Game != nil {
-		dstGame := *src.Game
-
-		if src.Game.Players != nil {
-			dstGame.Players = make([]*game.Player, len(src.Game.Players))
-			for i, p := range src.Game.Players {
-				if p != nil {
-					pCopy := *p
-					if p.Hand != nil {
-						pCopy.Hand = make([]*game.Card, len(p.Hand))
-						for j, c := range p.Hand {
-							if c != nil {
-								cCopy := *c
-								pCopy.Hand[j] = &cCopy
-							}
-						}
-					}
-					dstGame.Players[i] = &pCopy
-				}
-			}
-		}
-
-		if src.Game.FieldCards != nil {
-			dstGame.FieldCards = make([]*game.Card, len(src.Game.FieldCards))
-			for i, c := range src.Game.FieldCards {
-				if c != nil {
-					cCopy := *c
-					dstGame.FieldCards[i] = &cCopy
-				}
-			}
-		}
-
-		if src.Game.FinishedPlayers != nil {
-			dstGame.FinishedPlayers = make([]*game.Player, len(src.Game.FinishedPlayers))
-			for i, p := range src.Game.FinishedPlayers {
-				if p != nil {
-					pCopy := *p
-					if p.Hand != nil {
-						pCopy.Hand = make([]*game.Card, len(p.Hand))
-						for j, c := range p.Hand {
-							if c != nil {
-								cCopy := *c
-								pCopy.Hand[j] = &cCopy
-							}
-						}
-					}
-					dstGame.FinishedPlayers[i] = &pCopy
-				}
-			}
-		}
-
-		dst.Game = &dstGame
+	// 新しい構造体に書き戻す
+	dst := &model.Room{}
+	if err := json.Unmarshal(b, dst); err != nil {
+		return nil
 	}
 
 	return dst
