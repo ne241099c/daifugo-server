@@ -104,6 +104,15 @@ func (r *InmemRoomRepository) deepCopy(src *model.Room) *model.Room {
 		copy(dst.MemberIDs, src.MemberIDs)
 	}
 
+	if src.PrevRanks != nil {
+		dst.PrevRanks = make(map[int64]int)
+		for k, v := range src.PrevRanks {
+			dst.PrevRanks[k] = v
+		}
+	} else {
+		dst.PrevRanks = make(map[int64]int)
+	}
+
 	// Game構造体もポインタを含んでいるため再帰的にコピー
 	if src.Game != nil {
 		dstGame := *src.Game

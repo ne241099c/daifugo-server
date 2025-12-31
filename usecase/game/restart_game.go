@@ -26,15 +26,30 @@ func (uc *RestartGameInteractor) Execute(ctx context.Context, roomID int64) (*mo
 	room.Mu.Lock()
 	defer room.Mu.Unlock()
 
-	if room.Game != nil {
-		return nil, fmt.Errorf("game already started")
+	if room.Game == nil {
+		return nil, fmt.Errorf("game is not started")
 	}
 
-	if len(room.MemberIDs) < 2 {
-		return nil, fmt.Errorf("at least 2 players are required")
+	if room.PrevRanks == nil {
+		room.PrevRanks = make(map[int64]int)
 	}
 
-	room.RestartGame()
+	// 前回の順位を保存
+	for k := range room.PrevRanks {
+		delete(room.PrevRanks, k)
+	}
+	for _, p := range room.Game.FinishedPlayers {
+		room.PrevRanks[p.UserID] = p.Rank
+	}
+	// 途中退場したプレイヤーの順位も保存
+	for _, p := range room.Game.Players {
+		if p.Rank > 0 {
+			room.PrevRanks[p.UserID] = p.Rank
+		}
+	}
+
+	room.Game = nil
+
 	if err := uc.RoomRepository.SaveRoom(ctx, room); err != nil {
 		return nil, err
 	}

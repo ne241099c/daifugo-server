@@ -8,14 +8,15 @@ import (
 )
 
 type Room struct {
-	ID        int64      `json:"id"`
-	Name      string     `json:"name"`
-	OwnerID   int64      `json:"owner_id"`
-	MemberIDs []int64    `json:"member_ids"`
-	Game      *game.Game `json:"game"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
-	Mu        sync.Mutex `json:"-"`
+	ID        int64         `json:"id"`
+	Name      string        `json:"name"`
+	OwnerID   int64         `json:"owner_id"`
+	MemberIDs []int64       `json:"member_ids"`
+	Game      *game.Game    `json:"game"`
+	PrevRanks map[int64]int `json:"prev_ranks"`
+	CreatedAt time.Time     `json:"created_at"`
+	UpdatedAt time.Time     `json:"updated_at"`
+	Mu        sync.Mutex    `json:"-"`
 }
 
 func (r *Room) IsFull() bool {
@@ -35,6 +36,7 @@ func NewRoom(name string, ownerID int64) *Room {
 		Name:      name,
 		OwnerID:   ownerID,
 		MemberIDs: []int64{ownerID},
+		PrevRanks: make(map[int64]int),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}

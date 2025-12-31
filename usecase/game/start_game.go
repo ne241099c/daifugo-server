@@ -35,6 +35,22 @@ func (uc *StartGameInteractor) Execute(ctx context.Context, roomID int64) (*mode
 	}
 
 	room.StartGame()
+
+	if len(room.PrevRanks) > 0 {
+		restoredCount := 0
+		// 前回の順位を復元
+		for _, p := range room.Game.Players {
+			if rank, ok := room.PrevRanks[p.UserID]; ok {
+				p.Rank = rank
+				restoredCount++
+			}
+		}
+
+		// 順位がついている人がいれば、Reset() を呼んで手札交換を実行させる
+		if restoredCount > 0 {
+			room.Game = room.Game.Reset()
+		}
+	}
 	if err := uc.RoomRepository.SaveRoom(ctx, room); err != nil {
 		return nil, err
 	}

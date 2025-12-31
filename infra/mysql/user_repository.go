@@ -69,14 +69,12 @@ func (r *MySQLUserRepository) GetUser(ctx context.Context, id int64) (*model.Use
 
 	var u model.User
 	if err := row.Scan(&u.ID, &u.Name, &u.Email, &u.HashedPassword, &u.CreatedAt, &u.UpdatedAt); err != nil {
-		fmt.Printf("DEBUG: MySQL GetUser id=%d が失敗しました: %v\n", id, err)
 
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, repository.ErrEntityNotFound
 		}
 		return nil, fmt.Errorf("failed to scan user: %w", err)
 	}
-	fmt.Printf("DEBUG: MySQL GetUser id=%d 成功\n", id)
 
 	return &u, nil
 }
