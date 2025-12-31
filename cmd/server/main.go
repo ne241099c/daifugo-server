@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/ne241099/daifugo-server/graph"
 	"github.com/ne241099/daifugo-server/infra/inmem"
 	"github.com/ne241099/daifugo-server/infra/mysql"
@@ -27,9 +29,21 @@ func main() {
 	userRepo := mysql.NewMySQLUserRepository(db)
 	roomRepo := inmem.NewInmemRoomRepository()
 
+	// 定期クリーンアップ開始
+	go func() {
+		// 1時間に1回チェック
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			// 24時間以上触られていない部屋を削除
+			roomRepo.CleanupRooms(24 * time.Hour)
+		}
+	}()
+
 	// Configから読み込んだ秘密鍵を使用する
 	authenticator := auth.NewJWTAuthenticator(cfg.JWTSecret)
-	authMiddleware := internalMiddleware.NewAuthMiddleware(authenticator)
+	authMiddleware := internalMiddleware.NewAuthMiddleware(authenticator, userRepo)
 
 	// SSE Hub 作成
 	hub := sse.NewHub()

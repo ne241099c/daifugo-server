@@ -135,3 +135,19 @@ func (r *MySQLUserRepository) ListUsers(ctx context.Context) ([]*model.User, err
 		return users, nil
 	}
 }
+
+func (r *MySQLUserRepository) IncrementTokenVersion(ctx context.Context, userID int64) (int, error) {
+	query := `UPDATE users SET token_version = token_version + 1 WHERE id = ?`
+	_, err := r.db.ExecContext(ctx, query, userID)
+	if err != nil {
+		return 0, err
+	}
+
+	// 更新後の値を取得
+	var newVersion int
+	err = r.db.QueryRowContext(ctx, "SELECT token_version FROM users WHERE id = ?", userID).Scan(&newVersion)
+	if err != nil {
+		return 0, err
+	}
+	return newVersion, nil
+}

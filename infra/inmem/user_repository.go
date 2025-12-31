@@ -107,3 +107,18 @@ func (r *InmemUserRepository) ListUsers(ctx context.Context) ([]*model.User, err
 
 	return users, nil
 }
+
+func (r *InmemUserRepository) IncrementTokenVersion(ctx context.Context, userID int64) (int, error) {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	user, ok := r.data[userID]
+	if !ok {
+		return 0, repository.ErrEntityNotFound
+	}
+
+	user.TokenVersion++
+	r.data[userID] = user
+
+	return user.TokenVersion, nil
+}

@@ -39,7 +39,7 @@ func (uc *LoginInteractor) Execute(ctx context.Context, email, password string) 
 	}
 
 	// トークンの生成
-	token, err := uc.Authenticator.CreateToken(ctx, u.ID)
+	token, err := uc.Authenticator.CreateToken(ctx, u.ID, u.TokenVersion)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to create token: %w", err)
 	}

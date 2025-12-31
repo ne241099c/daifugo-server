@@ -5,16 +5,19 @@ import (
 	"strings"
 
 	"github.com/ne241099/daifugo-server/internal/auth"
+	"github.com/ne241099/daifugo-server/repository"
 )
 
 type AuthMiddleware struct {
 	authenticator auth.Authenticator
+	userRepo      repository.UserRepository
 }
 
 // コンストラクタで Authenticator を受け取る
-func NewAuthMiddleware(authenticator auth.Authenticator) *AuthMiddleware {
+func NewAuthMiddleware(authenticator auth.Authenticator, userRepo repository.UserRepository) *AuthMiddleware {
 	return &AuthMiddleware{
 		authenticator: authenticator,
+		userRepo:      userRepo,
 	}
 }
 
@@ -35,11 +38,21 @@ func (m *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 		}
 		token := parts[1]
 
-		// インターフェース経由で検証を実行
-		uid, err := m.authenticator.VerifyToken(r.Context(), token)
+		uid, tokenVer, err := m.authenticator.VerifyToken(r.Context(), token)
 		if err != nil {
-			// 検証失敗時は未認証扱いとして通す
 			next.ServeHTTP(w, r)
+			return
+		}
+
+		user, err := m.userRepo.GetUser(r.Context(), uid)
+		if err != nil {
+			// ユーザーが存在しない
+			http.Error(w, "User not found", http.StatusUnauthorized)
+			return
+		}
+
+		if user.TokenVersion != tokenVer {
+			http.Error(w, "Session expired (Logged in on another device)", http.StatusUnauthorized)
 			return
 		}
 

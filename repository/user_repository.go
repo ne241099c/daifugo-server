@@ -17,4 +17,6 @@ type UserRepository interface {
 	DeleteUser(ctx context.Context, id int64) error
 	// ListUsers は、ユーザ一覧を取得する
 	ListUsers(ctx context.Context) ([]*model.User, error)
+	// IncrementTokenVersion は、ユーザのトークンバージョンをインクリメントする
+	IncrementTokenVersion(ctx context.Context, userID int64) (int, error)
 }

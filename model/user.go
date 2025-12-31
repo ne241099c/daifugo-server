@@ -8,12 +8,13 @@ import (
 )
 
 type User struct {
-	ID             int64
-	Email          string
-	HashedPassword string `jason:"-"`
-	Name           string
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	ID             int64     `json:"id"`
+	Email          string    `json:"email"`
+	HashedPassword string    `json:"-"`
+	Name           string    `json:"name"`
+	TokenVersion   int       `json:"token_version"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 type CreateUserParam struct {

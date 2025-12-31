@@ -3,8 +3,10 @@ package inmem
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/ne241099/daifugo-server/model"
 	"github.com/ne241099/daifugo-server/repository"
@@ -19,11 +21,7 @@ type InmemRoomRepository struct {
 }
 
 func (r *InmemRoomRepository) UpdateRoom(ctx context.Context, room *model.Room) error {
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
-
-	r.data[room.ID] = room
-	return nil
+	return r.SaveRoom(ctx, room)
 }
 
 func (r *InmemRoomRepository) DeleteRoom(ctx context.Context, id int64) error {
@@ -60,8 +58,11 @@ func (r *InmemRoomRepository) ListRooms(ctx context.Context) ([]*model.Room, err
 	defer r.mtx.RUnlock()
 
 	rooms := make([]*model.Room, 0, len(r.data))
-	for _, room := range r.data {
-		rooms = append(rooms, r.safeCopy(room))
+	for _, original := range r.data {
+		safeCopy := r.jsonDeepCopy(original)
+		if safeCopy != nil {
+			rooms = append(rooms, safeCopy)
+		}
 	}
 
 	sort.Slice(rooms, func(i, j int) bool {
@@ -82,29 +83,42 @@ func (r *InmemRoomRepository) GetRoomByID(ctx context.Context, id int64) (*model
 	return room, nil
 }
 
-func (r *InmemRoomRepository) safeCopy(src *model.Room) *model.Room {
+func (r *InmemRoomRepository) CleanupRooms(expiration time.Duration) {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	threshold := time.Now().Add(-expiration)
+	deletedCount := 0
+
+	for id, room := range r.data {
+		room.Mu.Lock()
+		updatedAt := room.UpdatedAt
+		room.Mu.Unlock()
+
+		if updatedAt.Before(threshold) {
+			delete(r.data, id)
+			deletedCount++
+		}
+	}
+
+	if deletedCount > 0 {
+		fmt.Printf("Cleaned up %d rooms\n", deletedCount)
+	}
+}
+
+// JSONを使った簡易DeepCopy
+func (r *InmemRoomRepository) jsonDeepCopy(src *model.Room) *model.Room {
 	src.Mu.Lock()
 	defer src.Mu.Unlock()
 
-	return r.deepCopy(src)
-}
-
-func (r *InmemRoomRepository) deepCopy(src *model.Room) *model.Room {
-	if src == nil {
-		return nil
-	}
-
-	// JSONに変換
 	b, err := json.Marshal(src)
 	if err != nil {
-		return nil // 本来はエラーハンドリングすべき
-	}
-
-	// 新しい構造体に書き戻す
-	dst := &model.Room{}
-	if err := json.Unmarshal(b, dst); err != nil {
 		return nil
 	}
-
-	return dst
+	var dst model.Room
+	if err := json.Unmarshal(b, &dst); err != nil {
+		return nil
+	}
+	// Mutexはコピーされないので安全
+	return &dst
 }
