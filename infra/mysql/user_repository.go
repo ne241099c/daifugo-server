@@ -59,6 +59,13 @@ func (r *MySQLUserRepository) update(ctx context.Context, u *model.User) error {
 
 // GetUser はIDでユーザーを取得する
 func (r *MySQLUserRepository) GetUser(ctx context.Context, id int64) (*model.User, error) {
+	if id < 0 {
+		return &model.User{
+			ID:   id,
+			Name: fmt.Sprintf("COM %d", -id),
+		}, nil
+	}
+
 	query := `
 		SELECT id, name, email, password_hash, token_version, created_at, updated_at
 		FROM users WHERE id = ?

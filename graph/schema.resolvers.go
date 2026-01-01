@@ -176,11 +176,11 @@ func (r *mutationResolver) JoinRoom(ctx context.Context, roomID string) (*model.
 }
 
 // StartGame is the resolver for the startGame field.
-func (r *mutationResolver) StartGame(ctx context.Context, roomID string) (*model.Room, error) {
+func (r *mutationResolver) StartGame(ctx context.Context, roomID string, totalPlayers int32) (*model.Room, error) {
 	rid, _ := strconv.ParseInt(roomID, 10, 64)
 
 	// UseCaseを実行
-	room, err := r.StartGameUseCase.Execute(ctx, rid)
+	room, err := r.StartGameUseCase.Execute(ctx, rid, int(totalPlayers))
 	if err != nil {
 		return nil, err
 	}

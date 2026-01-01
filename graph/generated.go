@@ -91,7 +91,7 @@ type ComplexityRoot struct {
 		PlayCard    func(childComplexity int, roomID string, cardIDs []int32) int
 		RestartGame func(childComplexity int, roomID string) int
 		SignUp      func(childComplexity int, in model.SignUpInput) int
-		StartGame   func(childComplexity int, roomID string) int
+		StartGame   func(childComplexity int, roomID string, totalPlayers int32) int
 	}
 
 	Query struct {
@@ -145,7 +145,7 @@ type MutationResolver interface {
 	SignUp(ctx context.Context, in model.SignUpInput) (*model.User, error)
 	CreateRoom(ctx context.Context, name string) (*model.Room, error)
 	JoinRoom(ctx context.Context, roomID string) (*model.Room, error)
-	StartGame(ctx context.Context, roomID string) (*model.Room, error)
+	StartGame(ctx context.Context, roomID string, totalPlayers int32) (*model.Room, error)
 	PlayCard(ctx context.Context, roomID string, cardIDs []int32) (*model.Room, error)
 	Pass(ctx context.Context, roomID string) (*model.Room, error)
 	LeaveRoom(ctx context.Context, roomID string) (bool, error)
@@ -389,7 +389,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.StartGame(childComplexity, args["roomID"].(string)), true
+		return e.complexity.Mutation.StartGame(childComplexity, args["roomID"].(string), args["totalPlayers"].(int32)), true
 
 	case "Query.hello":
 		if e.complexity.Query.Hello == nil {
@@ -755,6 +755,11 @@ func (ec *executionContext) field_Mutation_startGame_args(ctx context.Context, r
 		return nil, err
 	}
 	args["roomID"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "totalPlayers", ec.unmarshalNInt2int32)
+	if err != nil {
+		return nil, err
+	}
+	args["totalPlayers"] = arg1
 	return args, nil
 }
 
@@ -1550,7 +1555,7 @@ func (ec *executionContext) _Mutation_startGame(ctx context.Context, field graph
 		ec.fieldContext_Mutation_startGame,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().StartGame(ctx, fc.Args["roomID"].(string))
+			return ec.resolvers.Mutation().StartGame(ctx, fc.Args["roomID"].(string), fc.Args["totalPlayers"].(int32))
 		},
 		nil,
 		ec.marshalNRoom2ᚖgithubᚗcomᚋne241099ᚋdaifugoᚑserverᚋgraphᚋmodelᚐRoom,

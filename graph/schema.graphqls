@@ -69,7 +69,7 @@ type Mutation {
   signUp(in: signUpInput!): User!
   createRoom(name: String!): Room!
   joinRoom(roomID: ID!): Room!
-  startGame(roomID: ID!): Room!
+  startGame(roomID: ID!, totalPlayers: Int!): Room!
   playCard(roomID: ID!, cardIDs: [Int!]!): Room!
   pass(roomID: ID!): Room!
   leaveRoom(roomID: ID!): Boolean!

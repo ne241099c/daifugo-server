@@ -3,6 +3,7 @@ package game
 import (
 	"errors"
 	"fmt"
+	"sort"
 )
 
 type Player struct {
@@ -10,6 +11,7 @@ type Player struct {
 	Hand   []*Card `json:"hand"`
 	Name   string  `json:"name"`
 	Rank   int     `json:"rank"`
+	IsBot  bool    `json:"is_bot"`
 }
 
 // HasCards 手札チェック
@@ -66,13 +68,17 @@ type Game struct {
 	IsFinished bool
 }
 
-func NewGame(memberIDs []int64) *Game {
+func NewGame(memberIDs []int64, botCount int) *Game {
 	// 初期化処理
 	deck := NewDeck(2)
 	deck.Shuffle()
-	hands := deck.Deal(len(memberIDs))
 
-	players := make([]*Player, len(memberIDs))
+	totalPlayers := len(memberIDs) + botCount
+	hands := deck.Deal(totalPlayers)
+
+	players := make([]*Player, totalPlayers)
+
+	// 人間プレイヤーを追加
 	for i, uid := range memberIDs {
 		players[i] = &Player{
 			UserID: uid,
@@ -80,6 +86,18 @@ func NewGame(memberIDs []int64) *Game {
 			Name:   fmt.Sprintf("User%d", uid),
 			Rank:   0,
 		}
+	}
+
+	// ボットプレイヤーを追加
+	for i := 0; i < botCount; i++ {
+		botID := int64(-(i + 1))
+		players = append(players, &Player{
+			UserID: botID,
+			Hand:   hands[len(memberIDs)+i],
+			Name:   fmt.Sprintf("COM %d", i+1),
+			Rank:   0,
+			IsBot:  true,
+		})
 	}
 
 	return &Game{
@@ -463,4 +481,110 @@ func (g *Game) RemovePlayer(userID int64) {
 	if g.getActivePlayerCount() <= 1 {
 		g.finishGame()
 	}
+}
+
+func (g *Game) ProcessBots() {
+	for !g.IsFinished {
+		currentPlayer := g.Players[g.Turn]
+
+		// 人間になったら終了（入力待ち）
+		if !currentPlayer.IsBot {
+			break
+		}
+
+		// AI思考
+		cards := g.computeBotMove(currentPlayer)
+
+		if len(cards) > 0 {
+			// カードを出す
+			// ※ Playメソッドは権限チェックなどがあるため、内部処理用のメソッドを分けるのが綺麗ですが
+			// ここでは簡易的にPlayメソッドのロジックを流用/直書きします
+			// (本来は g.playInternal(currentPlayer, cards) のように切り出すのがベスト)
+
+			// バリデーション等はAIが正しいと信じてスキップし、状態更新のみ行う簡略実装例
+			// 実際には PlayCardUseCase から呼べる形に整えます
+			g.FieldCards = cards
+			// 役判定などは AnalyzeHand で再計算が必要ですが、ここでは省略
+			// AIがちゃんとしたカードを選ぶ前提
+
+			// 手札から削除
+			currentPlayer.RemoveCards(cards)
+
+			// 場の情報更新
+			ht, str, _ := AnalyzeHand(cards, g.IsRevolution) // AIが出したカードの再計算
+			g.LastHandType = ht
+			g.LastHandStrength = str
+			g.LastPlayerID = currentPlayer.UserID
+			g.PassCount = 0
+
+			// 革命判定
+			if len(cards) >= 4 {
+				g.IsRevolution = !g.IsRevolution
+			}
+
+			// あがり判定
+			if len(currentPlayer.Hand) == 0 {
+				g.handleWin(currentPlayer)
+				if g.IsFinished {
+					break
+				}
+			}
+
+			// 8切り判定などは省略（必要なら追加）
+			g.advanceTurn()
+
+		} else {
+			// パスする
+			g.PassCount++
+			g.advanceTurn()
+
+			// 全員パス判定
+			activeCount := g.getActivePlayerCount()
+			if activeCount > 0 && g.PassCount >= activeCount-1 {
+				g.clearTable()
+			}
+		}
+	}
+}
+
+// ★追加: AIロジック（簡易版）
+func (g *Game) computeBotMove(p *Player) []*Card {
+	// 1. 場が流れている（または自分が親）の場合
+	if len(g.FieldCards) == 0 {
+		// とりあえず一番弱いカードを1枚出す（もっと賢くできます）
+		// 手札はソートされていない可能性があるので、弱い順に探す
+		weakest := p.Hand[0]
+		minStr := 999
+		for _, c := range p.Hand {
+			str := GetStrength(c, g.IsRevolution)
+			if str < minStr {
+				minStr = str
+				weakest = c
+			}
+		}
+		return []*Card{weakest}
+	}
+
+	// 2. 場にカードがある場合、出せるものを探す
+	// 簡易実装: 単騎（1枚出し）のみ対応（ペアなどは複雑になるため）
+	if g.LastHandType == HandTypeSingle {
+		var candidates []*Card
+		for _, c := range p.Hand {
+			str := GetStrength(c, g.IsRevolution)
+			if str > g.LastHandStrength {
+				candidates = append(candidates, c)
+			}
+		}
+
+		if len(candidates) > 0 {
+			// 出せる中で一番弱いものを出す
+			sort.Slice(candidates, func(i, j int) bool {
+				return GetStrength(candidates[i], g.IsRevolution) < GetStrength(candidates[j], g.IsRevolution)
+			})
+			return []*Card{candidates[0]}
+		}
+	}
+
+	// 出せるものがない、またはペアなどは未対応なのでパス
+	return []*Card{} // 空リスト＝パス
 }

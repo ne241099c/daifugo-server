@@ -9,7 +9,7 @@ import (
 )
 
 type StartGameUseCase interface {
-	Execute(ctx context.Context, roomID int64) (*model.Room, error)
+	Execute(ctx context.Context, roomID int64, totalPlayerCount int) (*model.Room, error)
 }
 
 var _ StartGameUseCase = &StartGameInteractor{}
@@ -18,11 +18,12 @@ type StartGameInteractor struct {
 	RoomRepository repository.RoomRepository
 }
 
-func (uc *StartGameInteractor) Execute(ctx context.Context, roomID int64) (*model.Room, error) {
+func (uc *StartGameInteractor) Execute(ctx context.Context, roomID int64, totalPlayerCount int) (*model.Room, error) {
 	room, err := uc.RoomRepository.GetRoomByID(ctx, roomID)
 	if err != nil {
 		return nil, fmt.Errorf("room not found: %w", err)
 	}
+
 	room.Mu.Lock()
 	defer room.Mu.Unlock()
 
@@ -34,7 +35,16 @@ func (uc *StartGameInteractor) Execute(ctx context.Context, roomID int64) (*mode
 		return nil, fmt.Errorf("at least 2 players are required")
 	}
 
-	room.StartGame()
+	// Botの人数を計算
+	humanCount := len(room.MemberIDs)
+	if totalPlayerCount < humanCount {
+		return nil, fmt.Errorf("プレイ人数が現在のメンバー数より少ないです")
+	}
+	botCount := totalPlayerCount - humanCount
+
+	room.StartGame(botCount)
+
+	room.Game.ProcessBots()
 
 	if len(room.PrevRanks) > 0 {
 		restoredCount := 0

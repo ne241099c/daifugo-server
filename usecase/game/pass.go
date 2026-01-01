@@ -34,6 +34,8 @@ func (uc *PassInteractor) Execute(ctx context.Context, roomID int64, userID int6
 		return nil, err
 	}
 
+	room.Game.ProcessBots()
+
 	if err := uc.RoomRepository.SaveRoom(ctx, room); err != nil {
 		return nil, err
 	}

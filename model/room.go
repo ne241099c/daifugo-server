@@ -23,8 +23,8 @@ func (r *Room) IsFull() bool {
 	return len(r.MemberIDs) >= 4
 }
 
-func (r *Room) StartGame() {
-	r.Game = game.NewGame(r.MemberIDs)
+func (r *Room) StartGame(botCount int) {
+	r.Game = game.NewGame(r.MemberIDs, botCount)
 }
 
 func (r *Room) RestartGame() {
