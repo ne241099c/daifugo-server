@@ -3,7 +3,6 @@ scalar DateTime
 type User {
   id: ID!
   name: String!
-  email: String!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -27,7 +26,6 @@ type Query {
   room(id: ID!): Room
   users: [User!]!
   user(id: ID!): User
-  me: User!
 }
 
 type Card {
@@ -53,20 +51,12 @@ type Game {
   isFinished: Boolean!
 }
 
-input signUpInput {
-  name: String!
-  email: String!
-  password: String!
-}
-
-type AuthPayload {
-  token: String!
-  user: User!
-}
-
 # 更新系のメソッド
 type Mutation {
-  signUp(in: signUpInput!): User!
+  # ゲスト参加。名前だけでプレイヤーを作成し、そのユーザーを返す。
+  createGuest(name: String!): User!
+  # 自分（ゲスト）の表示名を変更する。
+  renameUser(name: String!): User!
   createRoom(name: String!): Room!
   joinRoom(roomID: ID!): Room!
   startGame(roomID: ID!): Room!
@@ -74,7 +64,4 @@ type Mutation {
   pass(roomID: ID!): Room!
   leaveRoom(roomID: ID!): Boolean!
   restartGame(roomID: ID!): Room!
-  deleteUser: Boolean!
-  login(email: String!, password: String!): AuthPayload!
 }
-

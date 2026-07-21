@@ -8,11 +8,6 @@ import (
 	"github.com/ne241099/daifugo-server/internal/game"
 )
 
-type AuthPayload struct {
-	Token string `json:"token"`
-	User  *User  `json:"user"`
-}
-
 type Mutation struct {
 }
 
@@ -34,13 +29,6 @@ type Room struct {
 type User struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
-	Email     string    `json:"email"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
-}
-
-type SignUpInput struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
 }

@@ -1,3 +1,4 @@
+# ログイン/永続化を廃止したため DB は不要。サーバー単体で起動する。
 services:
   app:
     build: docker
@@ -5,34 +6,3 @@ services:
       - "8080:8080"
     volumes:
       - .:/app
-    environment:
-      - DB_USER=daifugo
-      - DB_PASSWORD=daifugo_pass
-      - DB_HOST=db
-      - DB_PORT=3306
-      - DB_NAME=daifugo_db
-    depends_on:
-      db:
-        condition: service_healthy
-
-  db:
-    image: mysql:8.0
-    platform: linux/amd64
-    environment:
-      MYSQL_DATABASE: daifugo_db
-      MYSQL_USER: daifugo
-      MYSQL_PASSWORD: daifugo_pass
-      MYSQL_ROOT_PASSWORD: root
-    ports:
-      - "3306:3306"
-    volumes:
-      - ./docker/mysql/init:/docker-entrypoint-initdb.d
-      - mysql-data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u$$DB_USER", "-p$$DB_PASSWORD"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-volumes:
-  mysql-data:

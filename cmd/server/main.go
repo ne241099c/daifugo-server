@@ -5,8 +5,6 @@ import (
 
 	"github.com/ne241099/daifugo-server/graph"
 	"github.com/ne241099/daifugo-server/infra/inmem"
-	"github.com/ne241099/daifugo-server/infra/mysql"
-	"github.com/ne241099/daifugo-server/internal/auth"
 	"github.com/ne241099/daifugo-server/internal/config"
 	internalMiddleware "github.com/ne241099/daifugo-server/internal/middleware"
 	"github.com/ne241099/daifugo-server/internal/server"
@@ -19,14 +17,8 @@ import (
 func main() {
 	cfg := config.Load()
 
-	db, err := mysql.NewDB(cfg)
-	if err != nil {
-		panic(err)
-	}
-	defer db.Close()
-
-	// リポジトリ初期化
-	userRepo := mysql.NewMySQLUserRepository(db)
+	// ログイン/永続化を廃止したため、ユーザーも部屋もインメモリで扱う（DB 不要）。
+	userRepo := inmem.NewInmemUserRepository()
 	roomRepo := inmem.NewInmemRoomRepository()
 
 	// 定期クリーンアップ開始
@@ -41,9 +33,8 @@ func main() {
 		}
 	}()
 
-	// Configから読み込んだ秘密鍵を使用する
-	authenticator := auth.NewJWTAuthenticator(cfg.JWTSecret)
-	authMiddleware := internalMiddleware.NewAuthMiddleware(authenticator, userRepo)
+	// ゲストIDヘッダー(X-User-ID)でプレイヤーを識別する
+	authMiddleware := internalMiddleware.NewAuthMiddleware(userRepo)
 
 	// SSE Hub 作成
 	hub := sse.NewHub()
@@ -51,7 +42,10 @@ func main() {
 	// Resolver 作成
 	resolver := &graph.Resolver{
 		Hub: hub,
-		SignUpUseCase: &user.SignUpInteractor{
+		CreateGuestUseCase: &user.CreateGuestInteractor{
+			UserRepository: userRepo,
+		},
+		RenameUserUseCase: &user.RenameUserInteractor{
 			UserRepository: userRepo,
 		},
 		GetUserUseCase: &user.GetUserInteractor{
@@ -59,13 +53,6 @@ func main() {
 		},
 		ListUsersUseCase: &user.ListUsersInteractor{
 			UserRepository: userRepo,
-		},
-		DeleteUserUseCase: &user.DeleteUserInteractor{
-			UserRepository: userRepo,
-		},
-		LoginUseCase: &user.LoginInteractor{
-			UserRepository: userRepo,
-			TokenGenerator: authenticator,
 		},
 		CreateRoomUseCase: &room.CreateRoomInteractor{
 			RoomRepository: roomRepo,

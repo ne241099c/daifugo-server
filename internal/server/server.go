@@ -21,7 +21,7 @@ func New(resolver *graph.Resolver, hub *sse.Hub, authMiddleware *internalMiddlew
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		// フロントエンドとの通信用
 		AllowOrigins: []string{"http://localhost:5173"},
-		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, "X-User-ID"},
 	}))
 	// 認証ミドルウェアの適用
 	e.Use(echo.WrapMiddleware(authMiddleware.Authenticate))

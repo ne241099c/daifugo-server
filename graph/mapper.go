@@ -25,7 +25,6 @@ func mapUserToGraphQL(u *domain.User) *model.User {
 	return &model.User{
 		ID:        strconv.FormatInt(u.ID, 10),
 		Name:      u.Name,
-		Email:     u.Email,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 	}

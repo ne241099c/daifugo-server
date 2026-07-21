@@ -12,7 +12,6 @@ import (
 	"github.com/ne241099/daifugo-server/graph/model"
 	"github.com/ne241099/daifugo-server/internal/auth"
 	"github.com/ne241099/daifugo-server/internal/game"
-	"github.com/ne241099/daifugo-server/usecase/user"
 )
 
 // ID is the resolver for the id field.
@@ -96,13 +95,25 @@ func (r *gamePlayerResolver) Rank(ctx context.Context, obj *game.Player) (int32,
 	return int32(obj.Rank), nil
 }
 
-// SignUp is the resolver for the signUp field.
-func (r *mutationResolver) SignUp(ctx context.Context, in model.SignUpInput) (*model.User, error) {
-	u, err := r.SignUpUseCase.Execute(ctx, user.SignUpInput{
-		Name:     in.Name,
-		Email:    in.Email,
-		Password: in.Password,
-	})
+// CreateGuest is the resolver for the createGuest field.
+// 名前だけのゲストユーザーを作成する（認証なし）。
+func (r *mutationResolver) CreateGuest(ctx context.Context, name string) (*model.User, error) {
+	u, err := r.CreateGuestUseCase.Execute(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	return mapUserToGraphQL(u), nil
+}
+
+// RenameUser is the resolver for the renameUser field.
+// 自分（ゲスト）の表示名を変更する。
+func (r *mutationResolver) RenameUser(ctx context.Context, name string) (*model.User, error) {
+	userID, err := auth.GetUserID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("unauthorized: %w", err)
+	}
+
+	u, err := r.RenameUserUseCase.Execute(ctx, userID, name)
 	if err != nil {
 		return nil, err
 	}
@@ -260,33 +271,6 @@ func (r *mutationResolver) RestartGame(ctx context.Context, roomID string) (*mod
 	return mapRoomToGraphQL(room), nil
 }
 
-// DeleteUser is the resolver for the deleteUser field.
-func (r *mutationResolver) DeleteUser(ctx context.Context) (bool, error) {
-	userID, err := auth.GetUserID(ctx)
-	if err != nil {
-		return false, fmt.Errorf("unauthorized: %w", err)
-	}
-
-	if err := r.DeleteUserUseCase.Execute(ctx, userID); err != nil {
-		return false, err
-	}
-
-	return true, nil
-}
-
-// Login is the resolver for the login field.
-func (r *mutationResolver) Login(ctx context.Context, email string, password string) (*model.AuthPayload, error) {
-	token, u, err := r.LoginUseCase.Execute(ctx, email, password)
-	if err != nil {
-		return nil, err
-	}
-
-	return &model.AuthPayload{
-		Token: token,
-		User:  mapUserToGraphQL(u),
-	}, nil
-}
-
 // Hello is the resolver for the hello field.
 func (r *queryResolver) Hello(ctx context.Context) (string, error) {
 	r.Hub.Publish("Hello", map[string]any{"message": "Someone queried hello!"}, nil)
@@ -348,21 +332,6 @@ func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error
 	u, err := r.GetUserUseCase.Execute(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
-	}
-
-	return mapUserToGraphQL(u), nil
-}
-
-// Me is the resolver for the me field.
-func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
-	currentUserID, err := auth.GetUserID(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("unauthorized: %w", err)
-	}
-
-	u, err := r.GetUserUseCase.Execute(ctx, currentUserID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get current user: %w", err)
 	}
 
 	return mapUserToGraphQL(u), nil

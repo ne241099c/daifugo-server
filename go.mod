@@ -5,7 +5,6 @@ go 1.25
 require (
 	github.com/99designs/gqlgen v0.17.85
 	github.com/go-sql-driver/mysql v1.9.3
-	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/labstack/echo/v4 v4.14.0
 	github.com/vektah/gqlparser/v2 v2.5.31
 	golang.org/x/crypto v0.46.0

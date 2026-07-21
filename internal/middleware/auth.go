@@ -2,60 +2,44 @@ package middleware
 
 import (
 	"net/http"
-	"strings"
+	"strconv"
 
 	"github.com/ne241099/daifugo-server/internal/auth"
 	"github.com/ne241099/daifugo-server/repository"
 )
 
+// userIDHeader はゲストのユーザーIDを載せるリクエストヘッダー名。
+// ログイン/JWT を廃止し、クライアントが保持するゲストIDをそのまま識別子として使う。
+const userIDHeader = "X-User-ID"
+
 type AuthMiddleware struct {
-	authenticator auth.Authenticator
-	userRepo      repository.UserRepository
+	userRepo repository.UserRepository
 }
 
-// コンストラクタで Authenticator を受け取る
-func NewAuthMiddleware(authenticator auth.Authenticator, userRepo repository.UserRepository) *AuthMiddleware {
-	return &AuthMiddleware{
-		authenticator: authenticator,
-		userRepo:      userRepo,
-	}
+func NewAuthMiddleware(userRepo repository.UserRepository) *AuthMiddleware {
+	return &AuthMiddleware{userRepo: userRepo}
 }
 
 func (m *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Authorizationヘッダーの取得
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
+		raw := r.Header.Get(userIDHeader)
+		if raw == "" {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		// "Bearer <token>" 形式の解析
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			next.ServeHTTP(w, r)
-			return
-		}
-		token := parts[1]
-
-		uid, tokenVer, err := m.authenticator.VerifyToken(r.Context(), token)
+		uid, err := strconv.ParseInt(raw, 10, 64)
 		if err != nil {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		user, err := m.userRepo.GetUser(r.Context(), uid)
-		if err != nil {
-			http.Error(w, "User not found", http.StatusUnauthorized)
+		// 存在しないIDは無視する（無認証で続行し、認証が要るリゾルバ側で弾く）
+		if _, err := m.userRepo.GetUser(r.Context(), uid); err != nil {
+			next.ServeHTTP(w, r)
 			return
 		}
 
-		if user.TokenVersion != tokenVer {
-			http.Error(w, "Session expired (Logged in on another device)", http.StatusUnauthorized)
-			return
-		}
-
-		// Contextに埋め込む
 		ctx := auth.WithUserID(r.Context(), uid)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
