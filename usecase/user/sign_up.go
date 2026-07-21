@@ -5,14 +5,21 @@ import (
 	"errors"
 	"time"
 
-	gqlmodel "github.com/ne241099/daifugo-server/graph/model"
 	"github.com/ne241099/daifugo-server/model"
 	"github.com/ne241099/daifugo-server/repository"
 	"github.com/ne241099/daifugo-server/usecase"
 )
 
+// SignUpInput はサインアップのユースケース入力
+// プレゼンテーション層の型に依存しないよう、ユースケース層で定義する
+type SignUpInput struct {
+	Name     string
+	Email    string
+	Password string
+}
+
 type SignUpUseCase interface {
-	Execute(context.Context, gqlmodel.SignUpInput) (*model.User, error)
+	Execute(ctx context.Context, input SignUpInput) (*model.User, error)
 }
 
 var _ SignUpUseCase = &SignUpInteractor{}
@@ -21,15 +28,15 @@ type SignUpInteractor struct {
 	UserRepository repository.UserRepository
 }
 
-func (uc *SignUpInteractor) Execute(ctx context.Context, input gqlmodel.SignUpInput) (*model.User, error) {
+func (uc *SignUpInteractor) Execute(ctx context.Context, input SignUpInput) (*model.User, error) {
 	// 重複チェック
 	u, err := uc.UserRepository.GetUserByEmail(ctx, input.Email)
 	if u != nil {
-		return nil, errors.Join(usecase.ErrDuplicateEntity)
+		return nil, usecase.ErrDuplicateEntity
 	}
 
 	if !errors.Is(err, repository.ErrEntityNotFound) {
-		return nil, errors.Join(err)
+		return nil, err
 	}
 	now := time.Now()
 
@@ -42,7 +49,7 @@ func (uc *SignUpInteractor) Execute(ctx context.Context, input gqlmodel.SignUpIn
 		CreatedAt: now,
 		UpdatedAt: now,
 	}); err != nil {
-		return nil, errors.Join(err)
+		return nil, err
 	}
 
 	// ユーザ保存

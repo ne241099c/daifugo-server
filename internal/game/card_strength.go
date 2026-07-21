@@ -20,3 +20,13 @@ func sortHandForExchange(hand []*Card) {
 		return cardStrength(hand[i]) < cardStrength(hand[j])
 	})
 }
+
+// hasRank は指定したランクのカードが含まれているかを返す
+func hasRank(cards []*Card, rank Rank) bool {
+	for _, c := range cards {
+		if c.Rank == rank {
+			return true
+		}
+	}
+	return false
+}

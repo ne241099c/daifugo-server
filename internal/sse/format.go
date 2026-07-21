@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 )
 
 // writeSSE は SSE フォーマットで1イベントを書き込む
@@ -30,7 +31,7 @@ func writeSSE(w io.Writer, ev Event) error {
 	if err != nil {
 		return err
 	}
-	for _, line := range splitLines(string(b)) {
+	for _, line := range strings.Split(string(b), "\n") {
 		if _, err := fmt.Fprintf(w, "data: %s\n", line); err != nil {
 			return err
 		}
@@ -39,17 +40,4 @@ func writeSSE(w io.Writer, ev Event) error {
 	// イベント終端（空行）
 	_, err = fmt.Fprint(w, "\n")
 	return err
-}
-
-func splitLines(s string) []string {
-	out := []string{}
-	start := 0
-	for i := 0; i < len(s); i++ {
-		if s[i] == '\n' {
-			out = append(out, s[start:i])
-			start = i + 1
-		}
-	}
-	out = append(out, s[start:])
-	return out
 }

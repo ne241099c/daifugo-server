@@ -5,11 +5,16 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ne241099/daifugo-server/internal/auth"
 	"github.com/ne241099/daifugo-server/model"
 	"github.com/ne241099/daifugo-server/repository"
 	"golang.org/x/crypto/bcrypt"
 )
+
+// TokenGenerator は認証トークンを発行するポート。
+// 具体的な実装（JWT など）は infra/adapter 層が提供する。
+type TokenGenerator interface {
+	CreateToken(ctx context.Context, userID int64, version int) (string, error)
+}
 
 type LoginUseCase interface {
 	Execute(ctx context.Context, email, password string) (string, *model.User, error)
@@ -20,8 +25,8 @@ var _ LoginUseCase = &LoginInteractor{}
 type LoginInteractor struct {
 	// UserRepository ユーザリポジトリ
 	UserRepository repository.UserRepository
-	// Authenticator 認証サービス
-	Authenticator auth.Authenticator
+	// TokenGenerator トークン発行サービス
+	TokenGenerator TokenGenerator
 }
 
 func (uc *LoginInteractor) Execute(ctx context.Context, email, password string) (string, *model.User, error) {
@@ -46,7 +51,7 @@ func (uc *LoginInteractor) Execute(ctx context.Context, email, password string) 
 	u.TokenVersion = newVersion
 
 	// トークンの生成
-	token, err := uc.Authenticator.CreateToken(ctx, u.ID, newVersion)
+	token, err := uc.TokenGenerator.CreateToken(ctx, u.ID, newVersion)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to create token: %w", err)
 	}

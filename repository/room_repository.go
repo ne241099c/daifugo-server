@@ -17,4 +17,8 @@ type RoomRepository interface {
 	ListRooms(ctx context.Context) ([]*model.Room, error)
 	// GetRoomByID は、IDから部屋を取得する
 	GetRoomByID(ctx context.Context, id int64) (*model.Room, error)
+	// WithLock は、指定した部屋IDに対する排他ロックを取得し、解放用の関数を返す。
+	// 「取得→変更→保存」を直列化するために使う。呼び出し側は戻り値を必ず defer で呼ぶこと。
+	// （並行制御はドメインではなく永続化層の責務であるため、ここに置く）
+	WithLock(id int64) (release func())
 }

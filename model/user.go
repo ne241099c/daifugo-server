@@ -1,7 +1,6 @@
 package model
 
 import (
-	"errors"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -28,7 +27,7 @@ type CreateUserParam struct {
 func (u *User) Create(params CreateUserParam) error {
 	hp, err := hashPassword(params.Password)
 	if err != nil {
-		return errors.Join(err)
+		return err
 	}
 	u.Email = params.Email
 	u.HashedPassword = hp
@@ -43,12 +42,10 @@ func hashPassword(password string) (string, error) {
 	// クリプトでハッシュ化する
 	// パスワードをバイト列に変換し、デフォルトのコストでハッシュ化します
 	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-
 	if err != nil {
-		return "", errors.Join(err)
+		return "", err
 	}
 
 	// バイト列を文字列に戻して返します
 	return string(hashedBytes), nil
-
 }

@@ -103,13 +103,7 @@ func (g *Game) Play(userID int64, cards []*Card) error {
 		return errors.New("持っていないカードが含まれています")
 	}
 
-	is11Back := false
-	for _, c := range g.FieldCards {
-		if c.Rank == RankJack {
-			is11Back = true
-			break
-		}
-	}
+	is11Back := hasRank(g.FieldCards, RankJack)
 
 	effectiveRev := g.IsRevolution
 	if is11Back {
@@ -155,13 +149,7 @@ func (g *Game) Play(userID int64, cards []*Card) error {
 	}
 
 	// 8切り判定
-	is8giri := false
-	for _, c := range cards {
-		if c.Rank == RankEight {
-			is8giri = true
-			break
-		}
-	}
+	is8giri := hasRank(cards, RankEight)
 
 	// あがり判定
 	if len(player.Hand) == 0 {
@@ -276,26 +264,35 @@ func (g *Game) advanceTurn() {
 }
 
 func (g *Game) handleWin(winner *Player) {
-	// 順位リストに追加
-	g.FinishedPlayers = append(g.FinishedPlayers, winner)
-
-	// 順位付け
-	winner.Rank = len(g.FinishedPlayers)
-
-	// 都落ち判定
-	if len(g.FinishedPlayers) == 1 && winner.Rank != 1 {
-		for _, p := range g.Players {
-			if p.Rank == 1 && len(p.Hand) > 0 {
-				// 都落ち発生！
-				g.triggerMiyakoOchi(p)
-				break
-			}
-		}
+	// 都落ち判定は着順を確定する「前」に行う。
+	// この時点では各プレイヤーの Rank はまだ前局の順位を保持しており、
+	// 最初のあがり（まだ誰も上がっていない）のときだけ判定する。
+	if len(g.FinishedPlayers) == 0 {
+		g.checkMiyakoOchi(winner)
 	}
+
+	// 着順リストに追加し、今局の着順を確定する
+	g.FinishedPlayers = append(g.FinishedPlayers, winner)
+	winner.Rank = len(g.FinishedPlayers)
 
 	// ゲーム終了判定
 	if g.getActivePlayerCount() == 1 {
 		g.finishGame()
+	}
+}
+
+// checkMiyakoOchi は前局の大富豪（Rank==1）が今局で先を越された場合に、
+// その大富豪を都落ちさせる。winner 自身が前局大富豪なら防衛成功で発生しない。
+// （前局が無い初回ゲームでは全員 Rank==0 のため発生しない）
+func (g *Game) checkMiyakoOchi(winner *Player) {
+	for _, p := range g.Players {
+		if p == winner {
+			continue
+		}
+		if p.Rank == 1 && len(p.Hand) > 0 {
+			g.triggerMiyakoOchi(p)
+			return
+		}
 	}
 }
 

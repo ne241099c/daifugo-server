@@ -19,12 +19,13 @@ type StartGameInteractor struct {
 }
 
 func (uc *StartGameInteractor) Execute(ctx context.Context, roomID int64) (*model.Room, error) {
+	release := uc.RoomRepository.WithLock(roomID)
+	defer release()
+
 	room, err := uc.RoomRepository.GetRoomByID(ctx, roomID)
 	if err != nil {
 		return nil, fmt.Errorf("room not found: %w", err)
 	}
-	room.Mu.Lock()
-	defer room.Mu.Unlock()
 
 	if room.Game != nil {
 		return nil, fmt.Errorf("game already started")

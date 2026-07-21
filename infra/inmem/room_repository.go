@@ -15,9 +15,38 @@ import (
 var _ repository.RoomRepository = &InmemRoomRepository{}
 
 type InmemRoomRepository struct {
-	mtx  sync.RWMutex
-	data map[int64]*model.Room
-	next int64
+	mtx   sync.RWMutex
+	data  map[int64]*model.Room
+	locks map[int64]*sync.Mutex // 部屋IDごとの排他ロック
+	next  int64
+}
+
+func NewInmemRoomRepository() *InmemRoomRepository {
+	return &InmemRoomRepository{
+		data:  make(map[int64]*model.Room),
+		locks: make(map[int64]*sync.Mutex),
+		next:  1,
+	}
+}
+
+// roomLock は指定IDのロックを取得（無ければ生成）して返す。
+func (r *InmemRoomRepository) roomLock(id int64) *sync.Mutex {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	m, ok := r.locks[id]
+	if !ok {
+		m = &sync.Mutex{}
+		r.locks[id] = m
+	}
+	return m
+}
+
+// WithLock は部屋ごとの排他ロックを取得し、解放関数を返す。
+func (r *InmemRoomRepository) WithLock(id int64) func() {
+	m := r.roomLock(id)
+	m.Lock()
+	return m.Unlock
 }
 
 func (r *InmemRoomRepository) UpdateRoom(ctx context.Context, room *model.Room) error {
@@ -30,13 +59,6 @@ func (r *InmemRoomRepository) DeleteRoom(ctx context.Context, id int64) error {
 
 	delete(r.data, id)
 	return nil
-}
-
-func NewInmemRoomRepository() *InmemRoomRepository {
-	return &InmemRoomRepository{
-		data: make(map[int64]*model.Room),
-		next: 1,
-	}
 }
 
 func (r *InmemRoomRepository) SaveRoom(ctx context.Context, room *model.Room) error {
@@ -56,12 +78,22 @@ func (r *InmemRoomRepository) SaveRoom(ctx context.Context, room *model.Room) er
 }
 
 func (r *InmemRoomRepository) ListRooms(ctx context.Context) ([]*model.Room, error) {
+	// まず対象の部屋ポインタをスナップショットする（r.mtx を長時間保持しない）
 	r.mtx.RLock()
-	defer r.mtx.RUnlock()
+	originals := make([]*model.Room, 0, len(r.data))
+	for _, room := range r.data {
+		originals = append(originals, room)
+	}
+	r.mtx.RUnlock()
 
-	rooms := make([]*model.Room, 0, len(r.data))
-	for _, original := range r.data {
-		safeCopy := r.jsonDeepCopy(original)
+	// 各部屋を、その部屋のロックを取りながら安全にディープコピーする。
+	// （Play/Pass 等の変更中に Game をマーシャルしないようにするため）
+	rooms := make([]*model.Room, 0, len(originals))
+	for _, original := range originals {
+		release := r.WithLock(original.ID)
+		safeCopy := jsonDeepCopy(original)
+		release()
+
 		if safeCopy != nil {
 			rooms = append(rooms, safeCopy)
 		}
@@ -92,13 +124,12 @@ func (r *InmemRoomRepository) CleanupRooms(expiration time.Duration) {
 	threshold := time.Now().Add(-expiration)
 	deletedCount := 0
 
+	// UpdatedAt は SaveRoom（r.mtx 保持下）でのみ書かれるため、
+	// ここで r.mtx を保持したまま読めば整合的に判定できる。
 	for id, room := range r.data {
-		room.Mu.Lock()
-		updatedAt := room.UpdatedAt
-		room.Mu.Unlock()
-
-		if updatedAt.Before(threshold) {
+		if room.UpdatedAt.Before(threshold) {
 			delete(r.data, id)
+			delete(r.locks, id)
 			deletedCount++
 		}
 	}
@@ -108,11 +139,9 @@ func (r *InmemRoomRepository) CleanupRooms(expiration time.Duration) {
 	}
 }
 
-// JSONを使った簡易DeepCopy
-func (r *InmemRoomRepository) jsonDeepCopy(src *model.Room) *model.Room {
-	src.Mu.Lock()
-	defer src.Mu.Unlock()
-
+// jsonDeepCopy は JSON を使った簡易ディープコピー。
+// 呼び出し側が対象部屋のロックを保持している前提。
+func jsonDeepCopy(src *model.Room) *model.Room {
 	b, err := json.Marshal(src)
 	if err != nil {
 		return nil

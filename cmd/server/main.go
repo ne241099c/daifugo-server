@@ -65,7 +65,7 @@ func main() {
 		},
 		LoginUseCase: &user.LoginInteractor{
 			UserRepository: userRepo,
-			Authenticator:  authenticator,
+			TokenGenerator: authenticator,
 		},
 		CreateRoomUseCase: &room.CreateRoomInteractor{
 			RoomRepository: roomRepo,

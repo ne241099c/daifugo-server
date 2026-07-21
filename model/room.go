@@ -1,12 +1,13 @@
 package model
 
 import (
-	"sync"
 	"time"
 
 	"github.com/ne241099/daifugo-server/internal/game"
 )
 
+// Room はドメインエンティティ。並行制御（ロック）は永続化の関心事なので
+// ここには持たせず、RoomRepository 側で部屋ごとに排他制御する。
 type Room struct {
 	ID        int64         `json:"id"`
 	Name      string        `json:"name"`
@@ -16,7 +17,6 @@ type Room struct {
 	PrevRanks map[int64]int `json:"prev_ranks"`
 	CreatedAt time.Time     `json:"created_at"`
 	UpdatedAt time.Time     `json:"updated_at"`
-	Mu        sync.Mutex    `json:"-"`
 }
 
 func (r *Room) IsFull() bool {

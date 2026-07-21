@@ -19,12 +19,13 @@ type RestartGameInteractor struct {
 }
 
 func (uc *RestartGameInteractor) Execute(ctx context.Context, roomID int64) (*model.Room, error) {
+	release := uc.RoomRepository.WithLock(roomID)
+	defer release()
+
 	room, err := uc.RoomRepository.GetRoomByID(ctx, roomID)
 	if err != nil {
 		return nil, err
 	}
-	room.Mu.Lock()
-	defer room.Mu.Unlock()
 
 	if room.Game == nil {
 		return nil, fmt.Errorf("game is not started")

@@ -19,12 +19,13 @@ type JoinRoomInteractor struct {
 }
 
 func (uc *JoinRoomInteractor) Execute(ctx context.Context, roomID int64, userID int64) (*model.Room, error) {
+	release := uc.RoomRepository.WithLock(roomID)
+	defer release()
+
 	room, err := uc.RoomRepository.GetRoomByID(ctx, roomID)
 	if err != nil {
 		return nil, err
 	}
-	room.Mu.Lock()
-	defer room.Mu.Unlock()
 
 	if room.IsFull() {
 		return nil, errors.New("room is full")

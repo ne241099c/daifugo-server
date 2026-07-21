@@ -11,6 +11,8 @@ type DeleteUserUseCase interface {
 	Execute(ctx context.Context, id int64) error
 }
 
+var _ DeleteUserUseCase = &DeleteUserInteractor{}
+
 type DeleteUserInteractor struct {
 	UserRepository repository.UserRepository
 }

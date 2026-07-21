@@ -20,12 +20,13 @@ type PlayCardInteractor struct {
 }
 
 func (uc *PlayCardInteractor) Execute(ctx context.Context, roomID int64, userID int64, cardIDs []int) (*model.Room, error) {
+	release := uc.RoomRepository.WithLock(roomID)
+	defer release()
+
 	room, err := uc.RoomRepository.GetRoomByID(ctx, roomID)
 	if err != nil {
 		return nil, fmt.Errorf("room not found: %w", err)
 	}
-	room.Mu.Lock()
-	defer room.Mu.Unlock()
 
 	if room.Game == nil {
 		return nil, fmt.Errorf("game not started")

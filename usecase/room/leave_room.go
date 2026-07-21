@@ -18,13 +18,14 @@ type LeaveRoomInteractor struct {
 }
 
 func (uc *LeaveRoomInteractor) Execute(ctx context.Context, roomID int64, userID int64) error {
+	release := uc.RoomRepository.WithLock(roomID)
+	defer release()
+
 	// 部屋情報を取得
 	room, err := uc.RoomRepository.GetRoomByID(ctx, roomID)
 	if err != nil {
 		return fmt.Errorf("room not found: %w", err)
 	}
-	room.Mu.Lock()
-	defer room.Mu.Unlock()
 
 	// メンバーリストからユーザーを削除
 	newMembers := make([]int64, 0, len(room.MemberIDs))

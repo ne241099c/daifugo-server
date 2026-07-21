@@ -7,13 +7,12 @@ package graph
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"strconv"
 
 	"github.com/ne241099/daifugo-server/graph/model"
 	"github.com/ne241099/daifugo-server/internal/auth"
 	"github.com/ne241099/daifugo-server/internal/game"
+	"github.com/ne241099/daifugo-server/usecase/user"
 )
 
 // ID is the resolver for the id field.
@@ -47,7 +46,7 @@ func (r *gameResolver) Players(ctx context.Context, obj *game.Game) ([]*game.Pla
 		return nil, fmt.Errorf("unauthorized: %w", err)
 	}
 
-	// 1. 自分がプレイヤーに含まれているか確認（観戦者判定）
+	// 自分がプレイヤーに含まれているか確認（観戦者判定）
 	isSpectator := true
 	for _, p := range obj.Players {
 		if p != nil && p.UserID == currentUserID {
@@ -56,26 +55,19 @@ func (r *gameResolver) Players(ctx context.Context, obj *game.Game) ([]*game.Pla
 		}
 	}
 
-	// 2. プレイヤーごとの手札をフィルタリングして返す
+	// プレイヤーごとの手札をフィルタリングして返す
 	result := make([]*game.Player, 0, len(obj.Players))
-
 	for _, p := range obj.Players {
-		// nilチェック (パニック防止)
 		if p == nil {
 			continue
 		}
 
-		// 構造体のコピーを作成
+		// 構造体のコピーを作成（元データを書き換えないため）
 		pCopy := *p
 
-		// 表示条件:
-		// A. ゲームが終了している
-		// B. 自分が観戦者である
-		// C. 自分の手札である
-		isVisible := obj.IsFinished || isSpectator || (p.UserID == currentUserID)
-
+		// 手札を見せる条件: ゲーム終了・観戦者・自分の手札
+		isVisible := obj.IsFinished || isSpectator || p.UserID == currentUserID
 		if !isVisible {
-			// 条件を満たさない場合、手札を隠す
 			pCopy.Hand = []*game.Card{}
 		}
 
@@ -96,14 +88,7 @@ func (r *gamePlayerResolver) User(ctx context.Context, obj *game.Player) (*model
 	if err != nil {
 		return nil, err
 	}
-
-	return &model.User{
-		ID:        strconv.FormatInt(u.ID, 10),
-		Name:      u.Name,
-		Email:     u.Email,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
-	}, nil
+	return mapUserToGraphQL(u), nil
 }
 
 // Rank is the resolver for the rank field.
@@ -113,17 +98,15 @@ func (r *gamePlayerResolver) Rank(ctx context.Context, obj *game.Player) (int32,
 
 // SignUp is the resolver for the signUp field.
 func (r *mutationResolver) SignUp(ctx context.Context, in model.SignUpInput) (*model.User, error) {
-	u, err := r.SignUpUseCase.Execute(ctx, in)
+	u, err := r.SignUpUseCase.Execute(ctx, user.SignUpInput{
+		Name:     in.Name,
+		Email:    in.Email,
+		Password: in.Password,
+	})
 	if err != nil {
-		return nil, errors.Join(err)
+		return nil, err
 	}
-	return &model.User{
-		ID:        strconv.FormatInt(u.ID, 10),
-		Email:     u.Email,
-		Name:      u.Name,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.CreatedAt,
-	}, nil
+	return mapUserToGraphQL(u), nil
 }
 
 // CreateRoom is the resolver for the createRoom field.
@@ -134,15 +117,12 @@ func (r *mutationResolver) CreateRoom(ctx context.Context, name string) (*model.
 		return nil, fmt.Errorf("unauthorized: %w", err)
 	}
 
-	// UseCaseを実行
 	createdRoom, err := r.CreateRoomUseCase.Execute(ctx, name, ownerID)
 	if err != nil {
 		return nil, err
 	}
 
-	// ドメインモデル から GraphQLモデル への変換
 	gqlRoom := mapRoomToGraphQL(createdRoom)
-
 	r.Hub.Publish("room_created", gqlRoom, nil)
 	return gqlRoom, nil
 }
@@ -150,36 +130,33 @@ func (r *mutationResolver) CreateRoom(ctx context.Context, name string) (*model.
 // JoinRoom is the resolver for the joinRoom field.
 // 部屋に参加する
 func (r *mutationResolver) JoinRoom(ctx context.Context, roomID string) (*model.Room, error) {
-	rID, err := strconv.ParseInt(roomID, 10, 64)
+	rID, err := parseID(roomID)
 	if err != nil {
-		return nil, errors.Join(err)
+		return nil, err
 	}
 
 	userID, err := auth.GetUserID(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unauthorized: %w", err)
 	}
+
 	joinedRoom, err := r.JoinRoomUseCase.Execute(ctx, rID, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	memberIDsStr := make([]string, len(joinedRoom.MemberIDs))
-	for i, mid := range joinedRoom.MemberIDs {
-		memberIDsStr[i] = strconv.FormatInt(mid, 10)
-	}
-
 	gqlRoom := mapRoomToGraphQL(joinedRoom)
-
 	r.Hub.Publish("room_updated", gqlRoom, nil)
 	return gqlRoom, nil
 }
 
 // StartGame is the resolver for the startGame field.
 func (r *mutationResolver) StartGame(ctx context.Context, roomID string) (*model.Room, error) {
-	rid, _ := strconv.ParseInt(roomID, 10, 64)
+	rid, err := parseID(roomID)
+	if err != nil {
+		return nil, err
+	}
 
-	// UseCaseを実行
 	room, err := r.StartGameUseCase.Execute(ctx, rid)
 	if err != nil {
 		return nil, err
@@ -194,9 +171,11 @@ func (r *mutationResolver) StartGame(ctx context.Context, roomID string) (*model
 
 // PlayCard is the resolver for the playCard field.
 func (r *mutationResolver) PlayCard(ctx context.Context, roomID string, cardIDs []int32) (*model.Room, error) {
-	rid, _ := strconv.ParseInt(roomID, 10, 64)
+	rid, err := parseID(roomID)
+	if err != nil {
+		return nil, err
+	}
 
-	// 実行ユーザーを取得
 	userID, err := auth.GetUserID(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unauthorized: %w", err)
@@ -207,7 +186,6 @@ func (r *mutationResolver) PlayCard(ctx context.Context, roomID string, cardIDs 
 		targetCardIDs[i] = int(id)
 	}
 
-	// UseCaseを実行
 	room, err := r.PlayCardUseCase.Execute(ctx, rid, userID, targetCardIDs)
 	if err != nil {
 		return nil, err
@@ -222,15 +200,16 @@ func (r *mutationResolver) PlayCard(ctx context.Context, roomID string, cardIDs 
 
 // Pass is the resolver for the pass field.
 func (r *mutationResolver) Pass(ctx context.Context, roomID string) (*model.Room, error) {
-	rid, _ := strconv.ParseInt(roomID, 10, 64)
+	rid, err := parseID(roomID)
+	if err != nil {
+		return nil, err
+	}
 
-	// 実行ユーザーを取得
 	userID, err := auth.GetUserID(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unauthorized: %w", err)
 	}
 
-	// UseCaseを実行
 	room, err := r.PassUseCase.Execute(ctx, rid, userID)
 	if err != nil {
 		return nil, err
@@ -245,15 +224,16 @@ func (r *mutationResolver) Pass(ctx context.Context, roomID string) (*model.Room
 
 // LeaveRoom is the resolver for the leaveRoom field.
 func (r *mutationResolver) LeaveRoom(ctx context.Context, roomID string) (bool, error) {
-	rid, _ := strconv.ParseInt(roomID, 10, 64)
+	rid, err := parseID(roomID)
+	if err != nil {
+		return false, err
+	}
 
-	// 実行ユーザーを取得
 	userID, err := auth.GetUserID(ctx)
 	if err != nil {
 		return false, fmt.Errorf("unauthorized: %w", err)
 	}
 
-	// UseCaseを実行
 	if err := r.LeaveRoomUseCase.Execute(ctx, rid, userID); err != nil {
 		return false, err
 	}
@@ -267,7 +247,7 @@ func (r *mutationResolver) LeaveRoom(ctx context.Context, roomID string) (bool, 
 
 // RestartGame is the resolver for the restartGame field.
 func (r *mutationResolver) RestartGame(ctx context.Context, roomID string) (*model.Room, error) {
-	rid, err := strconv.ParseInt(roomID, 10, 64)
+	rid, err := parseID(roomID)
 	if err != nil {
 		return nil, err
 	}
@@ -287,7 +267,6 @@ func (r *mutationResolver) DeleteUser(ctx context.Context) (bool, error) {
 		return false, fmt.Errorf("unauthorized: %w", err)
 	}
 
-	// UseCaseを実行
 	if err := r.DeleteUserUseCase.Execute(ctx, userID); err != nil {
 		return false, err
 	}
@@ -304,13 +283,7 @@ func (r *mutationResolver) Login(ctx context.Context, email string, password str
 
 	return &model.AuthPayload{
 		Token: token,
-		User: &model.User{
-			ID:        strconv.FormatInt(u.ID, 10),
-			Name:      u.Name,
-			Email:     u.Email,
-			CreatedAt: u.CreatedAt,
-			UpdatedAt: u.UpdatedAt,
-		},
+		User:  mapUserToGraphQL(u),
 	}, nil
 }
 
@@ -328,23 +301,9 @@ func (r *queryResolver) Rooms(ctx context.Context) ([]*model.Room, error) {
 		return nil, fmt.Errorf("failed to list rooms: %w", err)
 	}
 
-	// GraphQLモデルに変換
 	gqlRooms := make([]*model.Room, len(rooms))
 	for i, room := range rooms {
-		// メンバーIDの変換
-		memberIDsStr := make([]string, len(room.MemberIDs))
-		for j, mid := range room.MemberIDs {
-			memberIDsStr[j] = strconv.FormatInt(mid, 10)
-		}
-
-		gqlRooms[i] = &model.Room{
-			ID:        strconv.FormatInt(room.ID, 10),
-			Name:      room.Name,
-			OwnerID:   strconv.FormatInt(room.OwnerID, 10),
-			MemberIDs: memberIDsStr,
-			CreatedAt: room.CreatedAt,
-			UpdatedAt: room.UpdatedAt,
-		}
+		gqlRooms[i] = mapRoomToGraphQL(room)
 	}
 
 	return gqlRooms, nil
@@ -352,7 +311,10 @@ func (r *queryResolver) Rooms(ctx context.Context) ([]*model.Room, error) {
 
 // Room is the resolver for the room field.
 func (r *queryResolver) Room(ctx context.Context, id string) (*model.Room, error) {
-	rid, _ := strconv.ParseInt(id, 10, 64)
+	rid, err := parseID(id)
+	if err != nil {
+		return nil, err
+	}
 
 	room, err := r.GetRoomUseCase.Execute(ctx, rid)
 	if err != nil {
@@ -368,15 +330,9 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 		return nil, fmt.Errorf("failed to list users: %w", err)
 	}
 
-	var gqlUsers []*model.User
+	gqlUsers := make([]*model.User, 0, len(users))
 	for _, u := range users {
-		gqlUsers = append(gqlUsers, &model.User{
-			ID:        strconv.FormatInt(u.ID, 10),
-			Name:      u.Name,
-			Email:     u.Email,
-			CreatedAt: u.CreatedAt,
-			UpdatedAt: u.UpdatedAt,
-		})
+		gqlUsers = append(gqlUsers, mapUserToGraphQL(u))
 	}
 
 	return gqlUsers, nil
@@ -384,25 +340,17 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 
 // User is the resolver for the user field.
 func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
-	userID, err := strconv.ParseInt(id, 10, 64)
+	userID, err := parseID(id)
 	if err != nil {
-		return nil, fmt.Errorf("invalid user id: %w", err)
+		return nil, err
 	}
 
-	// DBから検索
 	u, err := r.GetUserUseCase.Execute(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
 	}
 
-	// GraphQLの型に変換して返す
-	return &model.User{
-		ID:        strconv.FormatInt(u.ID, 10),
-		Name:      u.Name,
-		Email:     u.Email,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
-	}, nil
+	return mapUserToGraphQL(u), nil
 }
 
 // Me is the resolver for the me field.
@@ -412,24 +360,17 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 		return nil, fmt.Errorf("unauthorized: %w", err)
 	}
 
-	// UseCaseを使って情報を取得
 	u, err := r.GetUserUseCase.Execute(ctx, currentUserID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current user: %w", err)
 	}
 
-	return &model.User{
-		ID:        strconv.FormatInt(u.ID, 10),
-		Name:      u.Name,
-		Email:     u.Email,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
-	}, nil
+	return mapUserToGraphQL(u), nil
 }
 
 // Owner is the resolver for the owner field.
 func (r *roomResolver) Owner(ctx context.Context, obj *model.Room) (*model.User, error) {
-	ownerID, err := strconv.ParseInt(obj.OwnerID, 10, 64)
+	ownerID, err := parseID(obj.OwnerID)
 	if err != nil {
 		return nil, err
 	}
@@ -439,32 +380,22 @@ func (r *roomResolver) Owner(ctx context.Context, obj *model.Room) (*model.User,
 		return nil, err
 	}
 
-	return &model.User{
-		ID:        strconv.FormatInt(u.ID, 10),
-		Name:      u.Name,
-		Email:     u.Email,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
-	}, nil
+	return mapUserToGraphQL(u), nil
 }
 
 // Members is the resolver for the members field.
 func (r *roomResolver) Members(ctx context.Context, obj *model.Room) ([]*model.User, error) {
-	var gqlUsers []*model.User
+	gqlUsers := make([]*model.User, 0, len(obj.MemberIDs))
 
-	// obj.MemberIDsを回してユーザー情報を取得
 	for _, idStr := range obj.MemberIDs {
-		mid, _ := strconv.ParseInt(idStr, 10, 64)
+		mid, err := parseID(idStr)
+		if err != nil {
+			continue
+		}
 
 		u, err := r.GetUserUseCase.Execute(ctx, mid)
 		if err == nil {
-			gqlUsers = append(gqlUsers, &model.User{
-				ID:        strconv.FormatInt(u.ID, 10),
-				Name:      u.Name,
-				Email:     u.Email,
-				CreatedAt: u.CreatedAt,
-				UpdatedAt: u.UpdatedAt,
-			})
+			gqlUsers = append(gqlUsers, mapUserToGraphQL(u))
 		}
 	}
 
