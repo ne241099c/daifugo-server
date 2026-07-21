@@ -9,10 +9,12 @@ import (
 // Room はドメインエンティティ。並行制御（ロック）は永続化の関心事なので
 // ここには持たせず、RoomRepository 側で部屋ごとに排他制御する。
 type Room struct {
-	ID        int64         `json:"id"`
-	Name      string        `json:"name"`
-	OwnerID   int64         `json:"owner_id"`
-	MemberIDs []int64       `json:"member_ids"`
+	ID        int64   `json:"id"`
+	Name      string  `json:"name"`
+	OwnerID   int64   `json:"owner_id"`
+	MemberIDs []int64 `json:"member_ids"`
+	// BotIDs は MemberIDs のうち CPU（SVM-AI）が操作するプレイヤーの userID。
+	BotIDs    []int64       `json:"bot_ids"`
 	Game      *game.Game    `json:"game"`
 	PrevRanks map[int64]int `json:"prev_ranks"`
 	CreatedAt time.Time     `json:"created_at"`
@@ -21,6 +23,27 @@ type Room struct {
 
 func (r *Room) IsFull() bool {
 	return len(r.MemberIDs) >= 4
+}
+
+// IsBot は userID が CPU（SVM-AI）プレイヤーかどうかを返す。
+func (r *Room) IsBot(userID int64) bool {
+	for _, id := range r.BotIDs {
+		if id == userID {
+			return true
+		}
+	}
+	return false
+}
+
+// HasHumanMember は CPU(Bot) 以外の人間メンバーが1人でもいるかを返す。
+// これが false の部屋（CPUのみ／空）は存在させ続ける意味がない。
+func (r *Room) HasHumanMember() bool {
+	for _, mid := range r.MemberIDs {
+		if !r.IsBot(mid) {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *Room) StartGame() {

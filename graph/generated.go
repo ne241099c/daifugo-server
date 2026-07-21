@@ -81,6 +81,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
+		AddBot      func(childComplexity int, roomID string) int
 		CreateGuest func(childComplexity int, name string) int
 		CreateRoom  func(childComplexity int, name string) int
 		JoinRoom    func(childComplexity int, roomID string) int
@@ -101,6 +102,7 @@ type ComplexityRoot struct {
 	}
 
 	Room struct {
+		BotIDs    func(childComplexity int) int
 		CreatedAt func(childComplexity int) int
 		Game      func(childComplexity int) int
 		ID        func(childComplexity int) int
@@ -145,6 +147,7 @@ type MutationResolver interface {
 	RenameUser(ctx context.Context, name string) (*model.User, error)
 	CreateRoom(ctx context.Context, name string) (*model.Room, error)
 	JoinRoom(ctx context.Context, roomID string) (*model.Room, error)
+	AddBot(ctx context.Context, roomID string) (*model.Room, error)
 	StartGame(ctx context.Context, roomID string) (*model.Room, error)
 	PlayCard(ctx context.Context, roomID string, cardIDs []int32) (*model.Room, error)
 	Pass(ctx context.Context, roomID string) (*model.Room, error)
@@ -293,6 +296,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.GamePlayer.UserID(childComplexity), true
 
+	case "Mutation.addBot":
+		if e.complexity.Mutation.AddBot == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addBot_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddBot(childComplexity, args["roomID"].(string)), true
 	case "Mutation.createGuest":
 		if e.complexity.Mutation.CreateGuest == nil {
 			break
@@ -434,6 +448,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.Users(childComplexity), true
 
+	case "Room.botIDs":
+		if e.complexity.Room.BotIDs == nil {
+			break
+		}
+
+		return e.complexity.Room.BotIDs(childComplexity), true
 	case "Room.createdAt":
 		if e.complexity.Room.CreatedAt == nil {
 			break
@@ -636,6 +656,17 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_addBot_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "roomID", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["roomID"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_createGuest_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
@@ -1541,6 +1572,8 @@ func (ec *executionContext) fieldContext_Mutation_createRoom(ctx context.Context
 				return ec.fieldContext_Room_ownerID(ctx, field)
 			case "memberIDs":
 				return ec.fieldContext_Room_memberIDs(ctx, field)
+			case "botIDs":
+				return ec.fieldContext_Room_botIDs(ctx, field)
 			case "owner":
 				return ec.fieldContext_Room_owner(ctx, field)
 			case "members":
@@ -1602,6 +1635,8 @@ func (ec *executionContext) fieldContext_Mutation_joinRoom(ctx context.Context, 
 				return ec.fieldContext_Room_ownerID(ctx, field)
 			case "memberIDs":
 				return ec.fieldContext_Room_memberIDs(ctx, field)
+			case "botIDs":
+				return ec.fieldContext_Room_botIDs(ctx, field)
 			case "owner":
 				return ec.fieldContext_Room_owner(ctx, field)
 			case "members":
@@ -1624,6 +1659,69 @@ func (ec *executionContext) fieldContext_Mutation_joinRoom(ctx context.Context, 
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_joinRoom_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_addBot(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_addBot,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().AddBot(ctx, fc.Args["roomID"].(string))
+		},
+		nil,
+		ec.marshalNRoom2ᚖgithubᚗcomᚋne241099ᚋdaifugoᚑserverᚋgraphᚋmodelᚐRoom,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_addBot(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Room_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Room_name(ctx, field)
+			case "ownerID":
+				return ec.fieldContext_Room_ownerID(ctx, field)
+			case "memberIDs":
+				return ec.fieldContext_Room_memberIDs(ctx, field)
+			case "botIDs":
+				return ec.fieldContext_Room_botIDs(ctx, field)
+			case "owner":
+				return ec.fieldContext_Room_owner(ctx, field)
+			case "members":
+				return ec.fieldContext_Room_members(ctx, field)
+			case "game":
+				return ec.fieldContext_Room_game(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Room_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Room_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Room", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_addBot_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -1663,6 +1761,8 @@ func (ec *executionContext) fieldContext_Mutation_startGame(ctx context.Context,
 				return ec.fieldContext_Room_ownerID(ctx, field)
 			case "memberIDs":
 				return ec.fieldContext_Room_memberIDs(ctx, field)
+			case "botIDs":
+				return ec.fieldContext_Room_botIDs(ctx, field)
 			case "owner":
 				return ec.fieldContext_Room_owner(ctx, field)
 			case "members":
@@ -1724,6 +1824,8 @@ func (ec *executionContext) fieldContext_Mutation_playCard(ctx context.Context, 
 				return ec.fieldContext_Room_ownerID(ctx, field)
 			case "memberIDs":
 				return ec.fieldContext_Room_memberIDs(ctx, field)
+			case "botIDs":
+				return ec.fieldContext_Room_botIDs(ctx, field)
 			case "owner":
 				return ec.fieldContext_Room_owner(ctx, field)
 			case "members":
@@ -1785,6 +1887,8 @@ func (ec *executionContext) fieldContext_Mutation_pass(ctx context.Context, fiel
 				return ec.fieldContext_Room_ownerID(ctx, field)
 			case "memberIDs":
 				return ec.fieldContext_Room_memberIDs(ctx, field)
+			case "botIDs":
+				return ec.fieldContext_Room_botIDs(ctx, field)
 			case "owner":
 				return ec.fieldContext_Room_owner(ctx, field)
 			case "members":
@@ -1887,6 +1991,8 @@ func (ec *executionContext) fieldContext_Mutation_restartGame(ctx context.Contex
 				return ec.fieldContext_Room_ownerID(ctx, field)
 			case "memberIDs":
 				return ec.fieldContext_Room_memberIDs(ctx, field)
+			case "botIDs":
+				return ec.fieldContext_Room_botIDs(ctx, field)
 			case "owner":
 				return ec.fieldContext_Room_owner(ctx, field)
 			case "members":
@@ -1976,6 +2082,8 @@ func (ec *executionContext) fieldContext_Query_rooms(_ context.Context, field gr
 				return ec.fieldContext_Room_ownerID(ctx, field)
 			case "memberIDs":
 				return ec.fieldContext_Room_memberIDs(ctx, field)
+			case "botIDs":
+				return ec.fieldContext_Room_botIDs(ctx, field)
 			case "owner":
 				return ec.fieldContext_Room_owner(ctx, field)
 			case "members":
@@ -2026,6 +2134,8 @@ func (ec *executionContext) fieldContext_Query_room(ctx context.Context, field g
 				return ec.fieldContext_Room_ownerID(ctx, field)
 			case "memberIDs":
 				return ec.fieldContext_Room_memberIDs(ctx, field)
+			case "botIDs":
+				return ec.fieldContext_Room_botIDs(ctx, field)
 			case "owner":
 				return ec.fieldContext_Room_owner(ctx, field)
 			case "members":
@@ -2356,6 +2466,35 @@ func (ec *executionContext) _Room_memberIDs(ctx context.Context, field graphql.C
 }
 
 func (ec *executionContext) fieldContext_Room_memberIDs(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Room",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Room_botIDs(ctx context.Context, field graphql.CollectedField, obj *model.Room) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Room_botIDs,
+		func(ctx context.Context) (any, error) {
+			return obj.BotIDs, nil
+		},
+		nil,
+		ec.marshalNID2ᚕstringᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Room_botIDs(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Room",
 		Field:      field,
@@ -4671,6 +4810,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "addBot":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_addBot(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "startGame":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_startGame(ctx, field)
@@ -4911,6 +5057,11 @@ func (ec *executionContext) _Room(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "memberIDs":
 			out.Values[i] = ec._Room_memberIDs(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "botIDs":
+			out.Values[i] = ec._Room_botIDs(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}

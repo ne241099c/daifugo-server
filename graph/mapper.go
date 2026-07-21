@@ -37,12 +37,16 @@ func mapRoomToGraphQL(r *domain.Room) *model.Room {
 		Name:      r.Name,
 		OwnerID:   strconv.FormatInt(r.OwnerID, 10),
 		MemberIDs: make([]string, len(r.MemberIDs)),
+		BotIDs:    make([]string, len(r.BotIDs)),
 		Game:      r.Game,
 		CreatedAt: r.CreatedAt,
 		UpdatedAt: r.UpdatedAt,
 	}
 	for i, mid := range r.MemberIDs {
 		gRoom.MemberIDs[i] = strconv.FormatInt(mid, 10)
+	}
+	for i, bid := range r.BotIDs {
+		gRoom.BotIDs[i] = strconv.FormatInt(bid, 10)
 	}
 	return gRoom
 }

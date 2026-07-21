@@ -20,6 +20,7 @@ type Resolver struct {
 	ListUsersUseCase   user.ListUsersUseCase
 	CreateRoomUseCase  room.CreateRoomUseCase
 	JoinRoomUseCase    room.JoinRoomUseCase
+	AddBotUseCase      room.AddBotUseCase
 	LeaveRoomUseCase   room.LeaveRoomUseCase
 	ListRoomsUseCase   room.ListRoomsUseCase
 	GetRoomUseCase     room.GetRoomUseCase

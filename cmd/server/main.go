@@ -1,11 +1,13 @@
 package main
 
 import (
+	"log"
 	"time"
 
 	"github.com/ne241099/daifugo-server/graph"
 	"github.com/ne241099/daifugo-server/infra/inmem"
 	"github.com/ne241099/daifugo-server/internal/config"
+	"github.com/ne241099/daifugo-server/internal/game/ai"
 	internalMiddleware "github.com/ne241099/daifugo-server/internal/middleware"
 	"github.com/ne241099/daifugo-server/internal/server"
 	"github.com/ne241099/daifugo-server/internal/sse"
@@ -36,6 +38,13 @@ func main() {
 	// ゲストIDヘッダー(X-User-ID)でプレイヤーを識別する
 	authMiddleware := internalMiddleware.NewAuthMiddleware(userRepo)
 
+	// 学習済み SVM-AI（CPU 用）を読み込む。失敗しても CPU 無しで起動する。
+	aiModel, err := ai.Default()
+	if err != nil {
+		log.Printf("AIモデルの読み込みに失敗しました。CPU対戦は無効になります: %v", err)
+		aiModel = nil
+	}
+
 	// SSE Hub 作成
 	hub := sse.NewHub()
 
@@ -60,6 +69,10 @@ func main() {
 		JoinRoomUseCase: &room.JoinRoomInteractor{
 			RoomRepository: roomRepo,
 		},
+		AddBotUseCase: &room.AddBotInteractor{
+			RoomRepository: roomRepo,
+			UserRepository: userRepo,
+		},
 		LeaveRoomUseCase: &room.LeaveRoomInteractor{
 			RoomRepository: roomRepo,
 		},
@@ -71,15 +84,18 @@ func main() {
 		},
 		StartGameUseCase: &game.StartGameInteractor{
 			RoomRepository: roomRepo,
+			AIModel:        aiModel,
 		},
 		RestartGameUseCase: &game.RestartGameInteractor{
 			RoomRepository: roomRepo,
 		},
 		PlayCardUseCase: &game.PlayCardInteractor{
 			RoomRepository: roomRepo,
+			AIModel:        aiModel,
 		},
 		PassUseCase: &game.PassInteractor{
 			RoomRepository: roomRepo,
+			AIModel:        aiModel,
 		},
 	}
 	// サーバー作成

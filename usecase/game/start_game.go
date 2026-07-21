@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ne241099/daifugo-server/internal/game/ai"
 	"github.com/ne241099/daifugo-server/model"
 	"github.com/ne241099/daifugo-server/repository"
 )
@@ -16,6 +17,8 @@ var _ StartGameUseCase = &StartGameInteractor{}
 
 type StartGameInteractor struct {
 	RoomRepository repository.RoomRepository
+	// AIModel は CPU の着手判断に使う学習済み SVM。nil の場合 CPU は動かない。
+	AIModel *ai.Model
 }
 
 func (uc *StartGameInteractor) Execute(ctx context.Context, roomID int64) (*model.Room, error) {
@@ -52,6 +55,14 @@ func (uc *StartGameInteractor) Execute(ctx context.Context, roomID int64) (*mode
 			room.Game = room.Game.Reset()
 		}
 	}
+
+	// 開始直後の手番が CPU なら、人間の番になるまで自動で進める。
+	if uc.AIModel != nil {
+		if err := uc.AIModel.RunBotTurns(room.Game, room.IsBot); err != nil {
+			return nil, err
+		}
+	}
+
 	if err := uc.RoomRepository.SaveRoom(ctx, room); err != nil {
 		return nil, err
 	}

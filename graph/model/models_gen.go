@@ -19,6 +19,7 @@ type Room struct {
 	Name      string     `json:"name"`
 	OwnerID   string     `json:"ownerID"`
 	MemberIDs []string   `json:"memberIDs"`
+	BotIDs    []string   `json:"botIDs"`
 	Owner     *User      `json:"owner"`
 	Members   []*User    `json:"members"`
 	Game      *game.Game `json:"game,omitempty"`

@@ -48,6 +48,14 @@ func (uc *LeaveRoomInteractor) Execute(ctx context.Context, roomID int64, userID
 		room.Game.RemovePlayer(userID)
 	}
 
+	// 人間がいなくなり CPU だけが残った場合は、CPU も全員退出させる。
+	// （CPU だけの部屋を残さないため。結果として部屋は空になり削除される）
+	if len(room.MemberIDs) > 0 && !room.HasHumanMember() {
+		room.MemberIDs = nil
+		room.BotIDs = nil
+		room.Game = nil
+	}
+
 	// 部屋が空になった場合は削除
 	if len(room.MemberIDs) == 0 {
 		if err := uc.RoomRepository.DeleteRoom(ctx, roomID); err != nil {

@@ -174,6 +174,23 @@ func (r *mutationResolver) JoinRoom(ctx context.Context, roomID string) (*model.
 	return gqlRoom, nil
 }
 
+// AddBot is the resolver for the addBot field.
+func (r *mutationResolver) AddBot(ctx context.Context, roomID string) (*model.Room, error) {
+	rID, err := parseID(roomID)
+	if err != nil {
+		return nil, err
+	}
+
+	updatedRoom, err := r.AddBotUseCase.Execute(ctx, rID)
+	if err != nil {
+		return nil, err
+	}
+
+	gqlRoom := mapRoomToGraphQL(updatedRoom)
+	r.Hub.Publish("room_updated", gqlRoom, nil)
+	return gqlRoom, nil
+}
+
 // StartGame is the resolver for the startGame field.
 func (r *mutationResolver) StartGame(ctx context.Context, roomID string) (*model.Room, error) {
 	rid, err := parseID(roomID)

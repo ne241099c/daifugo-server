@@ -117,21 +117,39 @@ func (r *InmemRoomRepository) GetRoomByID(ctx context.Context, id int64) (*model
 	return room, nil
 }
 
+// CleanupRooms は不要になった部屋を削除する定期ジョブ。
+//   - 人間メンバーが1人もいない部屋（CPUのみ／空）は、放置期間に関わらず削除する。
+//     人間が切断して leaveRoom を呼ばずに去った場合でも、CPUだけの部屋が居座らない。
+//   - それ以外は、expiration を超えて放置された部屋を削除する。
 func (r *InmemRoomRepository) CleanupRooms(expiration time.Duration) {
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
+	// r.mtx を長時間保持しないよう、まず対象をスナップショットする。
+	r.mtx.RLock()
+	ids := make([]int64, 0, len(r.data))
+	rooms := make([]*model.Room, 0, len(r.data))
+	for id, room := range r.data {
+		ids = append(ids, id)
+		rooms = append(rooms, room)
+	}
+	r.mtx.RUnlock()
 
 	threshold := time.Now().Add(-expiration)
 	deletedCount := 0
 
-	// UpdatedAt は SaveRoom（r.mtx 保持下）でのみ書かれるため、
-	// ここで r.mtx を保持したまま読めば整合的に判定できる。
-	for id, room := range r.data {
-		if room.UpdatedAt.Before(threshold) {
+	for i, id := range ids {
+		room := rooms[i]
+
+		// 判定は「部屋ロック → r.mtx」の順で両方を保持して行う。
+		// MemberIDs 等は部屋ロック下、UpdatedAt は r.mtx 下でのみ書かれるため、
+		// 両方を保持することで整合的に読め、判定と削除もアトミックになる。
+		release := r.WithLock(id)
+		r.mtx.Lock()
+		if !room.HasHumanMember() || room.UpdatedAt.Before(threshold) {
 			delete(r.data, id)
 			delete(r.locks, id)
 			deletedCount++
 		}
+		r.mtx.Unlock()
+		release()
 	}
 
 	if deletedCount > 0 {

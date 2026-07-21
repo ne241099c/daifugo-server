@@ -12,6 +12,7 @@ type Room {
   name: String! # 部屋名
   ownerID: ID! # 部屋のオーナーID
   memberIDs: [ID!]! # 部屋のメンバーIDリスト
+  botIDs: [ID!]! # CPU(SVM-AI)が操作するメンバーIDリスト
   owner: User! # 部屋のオーナー情報
   members: [User!]! # 部屋のメンバーリスト
   game: Game # 部屋内のゲーム情報
@@ -63,6 +64,8 @@ type Mutation {
   renameUser(name: String!): User!
   createRoom(name: String!): Room!
   joinRoom(roomID: ID!): Room!
+  # 部屋に CPU(SVM-AI) を1人追加する。
+  addBot(roomID: ID!): Room!
   startGame(roomID: ID!): Room!
   playCard(roomID: ID!, cardIDs: [Int!]!): Room!
   pass(roomID: ID!): Room!
