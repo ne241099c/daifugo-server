@@ -38,6 +38,7 @@ type GamePlayer {
   userID: ID!
   user: User!
   hand: [Card!]!
+  handCount: Int! # 手札の枚数（相手の手札は非公開でも枚数は見える）
   rank: Int!
 }
 

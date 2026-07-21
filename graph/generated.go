@@ -70,10 +70,11 @@ type ComplexityRoot struct {
 	}
 
 	GamePlayer struct {
-		Hand   func(childComplexity int) int
-		Rank   func(childComplexity int) int
-		User   func(childComplexity int) int
-		UserID func(childComplexity int) int
+		Hand      func(childComplexity int) int
+		HandCount func(childComplexity int) int
+		Rank      func(childComplexity int) int
+		User      func(childComplexity int) int
+		UserID    func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -131,6 +132,7 @@ type GameResolver interface {
 type GamePlayerResolver interface {
 	User(ctx context.Context, obj *game.Player) (*model.User, error)
 
+	HandCount(ctx context.Context, obj *game.Player) (int32, error)
 	Rank(ctx context.Context, obj *game.Player) (int32, error)
 }
 type MutationResolver interface {
@@ -243,6 +245,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.GamePlayer.Hand(childComplexity), true
+	case "GamePlayer.handCount":
+		if e.complexity.GamePlayer.HandCount == nil {
+			break
+		}
+
+		return e.complexity.GamePlayer.HandCount(childComplexity), true
 	case "GamePlayer.rank":
 		if e.complexity.GamePlayer.Rank == nil {
 			break
@@ -1007,6 +1015,8 @@ func (ec *executionContext) fieldContext_Game_players(_ context.Context, field g
 				return ec.fieldContext_GamePlayer_user(ctx, field)
 			case "hand":
 				return ec.fieldContext_GamePlayer_hand(ctx, field)
+			case "handCount":
+				return ec.fieldContext_GamePlayer_handCount(ctx, field)
 			case "rank":
 				return ec.fieldContext_GamePlayer_rank(ctx, field)
 			}
@@ -1046,6 +1056,8 @@ func (ec *executionContext) fieldContext_Game_finishedPlayers(_ context.Context,
 				return ec.fieldContext_GamePlayer_user(ctx, field)
 			case "hand":
 				return ec.fieldContext_GamePlayer_hand(ctx, field)
+			case "handCount":
+				return ec.fieldContext_GamePlayer_handCount(ctx, field)
 			case "rank":
 				return ec.fieldContext_GamePlayer_rank(ctx, field)
 			}
@@ -1213,6 +1225,35 @@ func (ec *executionContext) fieldContext_GamePlayer_hand(_ context.Context, fiel
 				return ec.fieldContext_Card_rank(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Card", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GamePlayer_handCount(ctx context.Context, field graphql.CollectedField, obj *game.Player) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GamePlayer_handCount,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.GamePlayer().HandCount(ctx, obj)
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GamePlayer_handCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GamePlayer",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -4318,6 +4359,42 @@ func (ec *executionContext) _GamePlayer(ctx context.Context, sel ast.SelectionSe
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "handCount":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._GamePlayer_handCount(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "rank":
 			field := field
 
