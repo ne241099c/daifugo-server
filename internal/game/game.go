@@ -69,6 +69,13 @@ type Game struct {
 	IsRevolution bool
 	PassCount    int
 
+	// LastEvent は直前のプレイで発生した演出イベント（カットイン用）。
+	// "eight_cut" / "revolution" / "" のいずれか。
+	LastEvent string
+	// EventSeq はプレイ/パスごとに増える連番。クライアントが「新しいイベントか」を
+	// 判定してカットインの二重再生を防ぐために使う。
+	EventSeq int
+
 	IsFinished bool
 }
 
@@ -158,6 +165,23 @@ func (g *Game) Play(userID int64, cards []*Card) error {
 
 	// 8切り判定
 	is8giri := hasRank(cards, RankEight)
+	// 11バック判定（J を出すと一時的に革命と同じ強さ反転が起きる）
+	isElevenBackPlay := hasRank(cards, RankJack)
+
+	// カットイン用イベントの記録。
+	// 出し方ではなく、実際に発生した効果に基づいてサーバーが確定させる。
+	// 優先度: 革命(4枚以上) > 8切り(場が流れる) > 11バック。
+	g.EventSeq++
+	switch {
+	case len(cards) >= 4:
+		g.LastEvent = "revolution"
+	case is8giri:
+		g.LastEvent = "eight_cut"
+	case isElevenBackPlay:
+		g.LastEvent = "eleven_back"
+	default:
+		g.LastEvent = ""
+	}
 
 	// あがり判定
 	if len(player.Hand) == 0 {
@@ -205,6 +229,8 @@ func (g *Game) Reset() *Game {
 	g.LastPlayerID = 0
 	g.IsRevolution = false
 	g.PassCount = 0
+	g.LastEvent = ""
+	g.EventSeq = 0
 	g.IsFinished = false
 	g.MiyakoOchiPlayer = nil
 
@@ -235,6 +261,10 @@ func (g *Game) Pass(userID int64) error {
 
 	g.PassCount++
 	g.advanceTurn()
+
+	// パスではカットイン演出は無し。連番だけ進めておく。
+	g.EventSeq++
+	g.LastEvent = ""
 
 	// 全員パス判定 (プレイ人数 - 1)
 	activeCount := g.getActivePlayerCount()

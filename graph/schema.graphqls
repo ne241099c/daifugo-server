@@ -50,6 +50,8 @@ type Game {
   players: [GamePlayer!]!
   finishedPlayers: [GamePlayer!]
   passCount: Int!
+  lastEvent: String! # 直前の演出イベント: "eight_cut" / "revolution" / ""
+  eventSeq: Int! # プレイ/パスごとの連番（カットインの二重再生防止用）
   isFinished: Boolean!
 }
 

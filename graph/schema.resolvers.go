@@ -84,6 +84,11 @@ func (r *gameResolver) PassCount(ctx context.Context, obj *game.Game) (int32, er
 	return int32(obj.PassCount), nil
 }
 
+// EventSeq is the resolver for the eventSeq field.
+func (r *gameResolver) EventSeq(ctx context.Context, obj *game.Game) (int32, error) {
+	return int32(obj.EventSeq), nil
+}
+
 // User is the resolver for the user field.
 func (r *gamePlayerResolver) User(ctx context.Context, obj *game.Player) (*model.User, error) {
 	u, err := r.GetUserUseCase.Execute(ctx, obj.UserID)
@@ -182,7 +187,8 @@ func (r *mutationResolver) StartGame(ctx context.Context, roomID string) (*model
 	}
 
 	if r.Hub != nil {
-		r.Hub.Publish(roomID, "game_started", nil)
+		// 引数は (eventType, data, retry)。data に roomID を載せる。
+		r.Hub.Publish("game_started", roomID, nil)
 	}
 
 	return mapRoomToGraphQL(room), nil
@@ -211,7 +217,7 @@ func (r *mutationResolver) PlayCard(ctx context.Context, roomID string, cardIDs 
 	}
 
 	if r.Hub != nil {
-		r.Hub.Publish(roomID, "game_update", nil)
+		r.Hub.Publish("game_update", roomID, nil)
 	}
 
 	return mapRoomToGraphQL(room), nil
@@ -235,7 +241,7 @@ func (r *mutationResolver) Pass(ctx context.Context, roomID string) (*model.Room
 	}
 
 	if r.Hub != nil {
-		r.Hub.Publish(roomID, "game_update", nil)
+		r.Hub.Publish("game_update", roomID, nil)
 	}
 
 	return mapRoomToGraphQL(room), nil

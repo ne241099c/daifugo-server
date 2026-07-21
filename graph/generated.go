@@ -61,10 +61,12 @@ type ComplexityRoot struct {
 
 	Game struct {
 		DiscardPile     func(childComplexity int) int
+		EventSeq        func(childComplexity int) int
 		FieldCards      func(childComplexity int) int
 		FinishedPlayers func(childComplexity int) int
 		IsFinished      func(childComplexity int) int
 		IsRevolution    func(childComplexity int) int
+		LastEvent       func(childComplexity int) int
 		PassCount       func(childComplexity int) int
 		Players         func(childComplexity int) int
 		Turn            func(childComplexity int) int
@@ -129,6 +131,8 @@ type GameResolver interface {
 	Players(ctx context.Context, obj *game.Game) ([]*game.Player, error)
 
 	PassCount(ctx context.Context, obj *game.Game) (int32, error)
+
+	EventSeq(ctx context.Context, obj *game.Game) (int32, error)
 }
 type GamePlayerResolver interface {
 	User(ctx context.Context, obj *game.Player) (*model.User, error)
@@ -203,6 +207,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Game.DiscardPile(childComplexity), true
+	case "Game.eventSeq":
+		if e.complexity.Game.EventSeq == nil {
+			break
+		}
+
+		return e.complexity.Game.EventSeq(childComplexity), true
 	case "Game.fieldCards":
 		if e.complexity.Game.FieldCards == nil {
 			break
@@ -227,6 +237,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Game.IsRevolution(childComplexity), true
+	case "Game.lastEvent":
+		if e.complexity.Game.LastEvent == nil {
+			break
+		}
+
+		return e.complexity.Game.LastEvent(childComplexity), true
 	case "Game.passCount":
 		if e.complexity.Game.PassCount == nil {
 			break
@@ -1128,6 +1144,64 @@ func (ec *executionContext) _Game_passCount(ctx context.Context, field graphql.C
 }
 
 func (ec *executionContext) fieldContext_Game_passCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Game",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Game_lastEvent(ctx context.Context, field graphql.CollectedField, obj *game.Game) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Game_lastEvent,
+		func(ctx context.Context) (any, error) {
+			return obj.LastEvent, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Game_lastEvent(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Game",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Game_eventSeq(ctx context.Context, field graphql.CollectedField, obj *game.Game) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Game_eventSeq,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Game().EventSeq(ctx, obj)
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Game_eventSeq(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Game",
 		Field:      field,
@@ -2410,6 +2484,10 @@ func (ec *executionContext) fieldContext_Room_game(_ context.Context, field grap
 				return ec.fieldContext_Game_finishedPlayers(ctx, field)
 			case "passCount":
 				return ec.fieldContext_Game_passCount(ctx, field)
+			case "lastEvent":
+				return ec.fieldContext_Game_lastEvent(ctx, field)
+			case "eventSeq":
+				return ec.fieldContext_Game_eventSeq(ctx, field)
 			case "isFinished":
 				return ec.fieldContext_Game_isFinished(ctx, field)
 			}
@@ -4299,6 +4377,47 @@ func (ec *executionContext) _Game(ctx context.Context, sel ast.SelectionSet, obj
 					}
 				}()
 				res = ec._Game_passCount(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "lastEvent":
+			out.Values[i] = ec._Game_lastEvent(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "eventSeq":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Game_eventSeq(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
