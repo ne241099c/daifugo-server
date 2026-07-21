@@ -65,6 +65,9 @@ func (r *gameResolver) Players(ctx context.Context, obj *game.Game) ([]*game.Pla
 		// 構造体のコピーを作成（元データを書き換えないため）
 		pCopy := *p
 
+		// 枚数は手札を非公開にする前に保持しておく
+		pCopy.HandCount = len(p.Hand)
+
 		// 手札を見せる条件: ゲーム終了・観戦者・自分の手札
 		isVisible := obj.IsFinished || isSpectator || p.UserID == currentUserID
 		if !isVisible {
@@ -89,6 +92,11 @@ func (r *gamePlayerResolver) User(ctx context.Context, obj *game.Player) (*model
 		return nil, err
 	}
 	return mapUserToGraphQL(u), nil
+}
+
+// HandCount is the resolver for the handCount field.
+func (r *gamePlayerResolver) HandCount(ctx context.Context, obj *game.Player) (int32, error) {
+	return int32(obj.HandCount), nil
 }
 
 // Rank is the resolver for the rank field.

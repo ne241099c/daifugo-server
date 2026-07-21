@@ -10,6 +10,10 @@ type Player struct {
 	Hand   []*Card `json:"hand"`
 	Name   string  `json:"name"`
 	Rank   int     `json:"rank"`
+
+	// HandCount は GraphQL 用の手札枚数。相手の手札を非公開にしても
+	// 枚数だけは見せられるよう、Players リゾルバがコピーに設定する。
+	HandCount int `json:"-"`
 }
 
 // HasCards 手札チェック
