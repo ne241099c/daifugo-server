@@ -56,6 +56,8 @@ type Game struct {
 	FinishedPlayers  []*Player
 	MiyakoOchiPlayer *Player
 	FieldCards       []*Card
+	// DiscardPile は場から流れた（プレイ済みの）カードの捨札。
+	DiscardPile []*Card
 
 	// 直前の役情報
 	LastHandType     HandType
@@ -87,9 +89,10 @@ func NewGame(memberIDs []int64) *Game {
 	}
 
 	return &Game{
-		Players:    players,
-		FieldCards: []*Card{},
-		Turn:       0,
+		Players:     players,
+		FieldCards:  []*Card{},
+		DiscardPile: []*Card{},
+		Turn:        0,
 	}
 }
 
@@ -139,7 +142,8 @@ func (g *Game) Play(userID int64, cards []*Card) error {
 
 	player.RemoveCards(cards)
 
-	// 場の更新
+	// 場の更新（上書きされる前の場札は捨札へ送る）
+	g.DiscardPile = append(g.DiscardPile, g.FieldCards...)
 	g.FieldCards = cards
 	g.LastHandType = hType
 	g.LastHandStrength = strength
@@ -195,6 +199,7 @@ func (g *Game) Reset() *Game {
 	// ゲーム状態の初期化
 	g.FinishedPlayers = []*Player{}
 	g.FieldCards = []*Card{}
+	g.DiscardPile = []*Card{}
 	g.LastHandType = HandTypeInvalid
 	g.LastHandStrength = 0
 	g.LastPlayerID = 0
@@ -243,6 +248,8 @@ func (g *Game) Pass(userID int64) error {
 }
 
 func (g *Game) clearTable() {
+	// 流れる場札は捨札へ送る
+	g.DiscardPile = append(g.DiscardPile, g.FieldCards...)
 	g.FieldCards = []*Card{}
 	g.LastHandType = HandTypeInvalid
 	g.LastHandStrength = 0

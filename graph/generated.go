@@ -60,6 +60,7 @@ type ComplexityRoot struct {
 	}
 
 	Game struct {
+		DiscardPile     func(childComplexity int) int
 		FieldCards      func(childComplexity int) int
 		FinishedPlayers func(childComplexity int) int
 		IsFinished      func(childComplexity int) int
@@ -196,6 +197,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Card.Suit(childComplexity), true
 
+	case "Game.discardPile":
+		if e.complexity.Game.DiscardPile == nil {
+			break
+		}
+
+		return e.complexity.Game.DiscardPile(childComplexity), true
 	case "Game.fieldCards":
 		if e.complexity.Game.FieldCards == nil {
 			break
@@ -936,6 +943,43 @@ func (ec *executionContext) _Game_fieldCards(ctx context.Context, field graphql.
 }
 
 func (ec *executionContext) fieldContext_Game_fieldCards(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Game",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Card_id(ctx, field)
+			case "suit":
+				return ec.fieldContext_Card_suit(ctx, field)
+			case "rank":
+				return ec.fieldContext_Card_rank(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Card", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Game_discardPile(ctx context.Context, field graphql.CollectedField, obj *game.Game) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Game_discardPile,
+		func(ctx context.Context) (any, error) {
+			return obj.DiscardPile, nil
+		},
+		nil,
+		ec.marshalNCard2ᚕᚖgithubᚗcomᚋne241099ᚋdaifugoᚑserverᚋinternalᚋgameᚐCardᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Game_discardPile(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Game",
 		Field:      field,
@@ -2356,6 +2400,8 @@ func (ec *executionContext) fieldContext_Room_game(_ context.Context, field grap
 				return ec.fieldContext_Game_turn(ctx, field)
 			case "fieldCards":
 				return ec.fieldContext_Game_fieldCards(ctx, field)
+			case "discardPile":
+				return ec.fieldContext_Game_discardPile(ctx, field)
 			case "isRevolution":
 				return ec.fieldContext_Game_isRevolution(ctx, field)
 			case "players":
@@ -4192,6 +4238,11 @@ func (ec *executionContext) _Game(ctx context.Context, sel ast.SelectionSet, obj
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "fieldCards":
 			out.Values[i] = ec._Game_fieldCards(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "discardPile":
+			out.Values[i] = ec._Game_discardPile(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}

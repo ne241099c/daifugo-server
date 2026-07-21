@@ -45,6 +45,7 @@ type GamePlayer {
 type Game {
   turn: Int!
   fieldCards: [Card!]!
+  discardPile: [Card!]! # 場から流れたプレイ済みカードの捨札
   isRevolution: Boolean!
   players: [GamePlayer!]!
   finishedPlayers: [GamePlayer!]
