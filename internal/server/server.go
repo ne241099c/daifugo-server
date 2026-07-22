@@ -1,6 +1,8 @@
 package server
 
 import (
+	"regexp"
+
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/labstack/echo/v4"
@@ -9,6 +11,10 @@ import (
 	internalMiddleware "github.com/ne241099/daifugo-server/internal/middleware"
 	"github.com/ne241099/daifugo-server/internal/sse"
 )
+
+// devOriginPattern は開発時にLAN上の別端末（スマホ等）から Vite dev server (5173番ポート) へ
+// アクセスする際のオリジンを許可するためのパターン
+var devOriginPattern = regexp.MustCompile(`^http://(localhost|127\.0\.0\.1|(\d{1,3}\.){3}\d{1,3}):5173$`)
 
 // New は設定済みの Echo サーバーインスタンスを返す
 // 必要な依存関係（ResolverやHub）は引数として受け取る
@@ -19,8 +25,10 @@ func New(resolver *graph.Resolver, hub *sse.Hub, authMiddleware *internalMiddlew
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		// フロントエンドとの通信用
-		AllowOrigins: []string{"http://localhost:5173"},
+		// フロントエンドとの通信用（LAN上の別端末からのアクセスも許可）
+		AllowOriginFunc: func(origin string) (bool, error) {
+			return devOriginPattern.MatchString(origin), nil
+		},
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, "X-User-ID"},
 	}))
 	// 認証ミドルウェアの適用
